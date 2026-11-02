@@ -1,0 +1,21 @@
+{
+  "cli": { "appVersionSource": "remote" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "ios": { "simulator": false }
+    },
+    "simulator": {
+      "ios": { "simulator": true }
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": { "image": "macos-tahoe-26.6-xcode-27.0" }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": { "ascAppId": "6824240144" }
+    }
+  }
+}
