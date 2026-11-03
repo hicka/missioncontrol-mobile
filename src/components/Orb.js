@@ -83,9 +83,9 @@ half4 main(float2 p) {
 
   // the faint track the tasks run along, tilted like a ring, hidden behind the orb
   if (satCount > 0.5) {
-    float2 flat = float2(c * toOrb.x + s * toOrb.y, -s * toOrb.x + c * toOrb.y);
-    float track = length(flat / float2(radius * 1.8, radius * 0.62));
-    if (flat.y >= 0.0 || orbDistance > shaped) {
+    float2 tilted = float2(c * toOrb.x + s * toOrb.y, -s * toOrb.x + c * toOrb.y);
+    float track = length(tilted / float2(radius * 1.8, radius * 0.62));
+    if (tilted.y >= 0.0 || orbDistance > shaped) {
       float t = smoothstep(0.075, 0.0, abs(track - 1.0)) * 0.28 * edgeFade;
       color += palette(angle / tau + rim) * t;
       alpha = max(alpha, t * 0.5);
