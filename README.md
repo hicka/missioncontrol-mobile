@@ -3,7 +3,7 @@
 The phone app for [Mission Control](https://github.com/hicka/missioncontrol): one
 agent in your pocket, and what it is really doing in plain sight.
 
-![Home, the conversation and a task on the phone](docs/screens.png)
+![Home, Chat, Inbox and Tasks on the phone, on sample data](docs/screens.png)
 
 - **Home** is the agent at a glance, drawn like the Mac's floating bar: the orb, whose
   light says whether it is listening, thinking, working or waiting on you, one light in
