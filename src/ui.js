@@ -488,9 +488,11 @@ export function Gutter({ children, style }) {
 }
 
 export function Screen({ children, scroll = true, refreshControl, contentStyle, innerRef, ...rest }) {
+  // On a routed page the stack paints the page colour; a scroll view painting it too covered the large title.
+  const routed = useRoute();
   if (!scroll) return <View style={{ flex: 1, backgroundColor: T.bg }}>{children}</View>;
   return (
-    <ScrollView ref={innerRef} style={{ flex: 1, backgroundColor: T.bg }} keyboardShouldPersistTaps="handled"
+    <ScrollView ref={innerRef} style={{ flex: 1, backgroundColor: routed ? "transparent" : T.bg }} keyboardShouldPersistTaps="handled"
       refreshControl={refreshControl} keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic" {...rest}
       contentContainerStyle={[{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 48 }, contentStyle]}>

@@ -6,15 +6,14 @@ import { Stack } from "expo-router";
 import { RouteCtx, useApp } from "./route";
 import { T } from "./theme";
 
+// Titles take the system's own label colour in the header's appearance, which is set to
+// the app's theme: a fixed colour left the large title invisible in dark mode.
 export function stackOptions() {
   return {
     headerStyle: { backgroundColor: T.bg },
     headerTintColor: T.text,
-    headerTitleStyle: { color: T.text },
-    headerLargeTitleStyle: { color: T.text },
-    headerLargeStyle: { backgroundColor: T.bg },
+    headerUserInterfaceStyle: T.scheme,
     headerShadowVisible: false,
-    headerLargeTitleShadowVisible: false,
     headerBackButtonDisplayMode: "minimal",
     contentStyle: { backgroundColor: T.bg },
   };
@@ -33,8 +32,9 @@ export function screenLayout(scheme, skip = () => false) {
   );
 }
 
-// A tab's own stack: its first page under a large title that folds into the bar as you scroll.
-export function TabStack({ title, large = true, header = true }) {
+// A tab's own stack. Large titles stay off: on iOS 26 and 27 a large title over a tracked
+// scroll view rested half-collapsed, with neither title showing.
+export function TabStack({ title, large = false, header = true }) {
   const { scheme } = useApp();
   return (
     <Stack screenOptions={stackOptions()} screenLayout={screenLayout(scheme)}>
