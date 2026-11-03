@@ -1,9 +1,9 @@
 # Google Play listing
 
-Paste these into Play Console. The feature graphic is `play-feature.png` (1024×500). The
-phone screenshots in `screenshots/` are 1320×2868.
+Paste these into Play Console. The feature graphic is `play-feature.png` (1024×500), the icon `play/icon-512.png`, and
+the phone screenshots `play/*.png` (1434×2868, the 2:1 Play allows at most).
 
-**App name** (30): Mission Control
+**App name** (30): Mission Control: Mac Agent
 
 **Short description** (80): Watch and steer the AI agent on your Mac: what it does, what it asks, every task.
 
