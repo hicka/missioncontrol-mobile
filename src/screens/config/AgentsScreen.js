@@ -62,7 +62,7 @@ export default function AgentsScreen({ nav, onBack, onChanged, editId }) {
 
   if (edit) {
     return (
-      <Shell title={edit.id ? edit.name || "Agent" : "New agent"} onBack={() => (editId ? onBack() : setEdit(null))}>
+      <Shell title={edit.id ? edit.name || "Profile" : "New profile"} onBack={onBack}>
         <View style={{ alignItems: "center", paddingVertical: 14 }}>
           <ProfileDot agent={{ id: edit.id || edit.name || "new", name: edit.name, color: edit.color }} size={64} />
         </View>
@@ -92,6 +92,7 @@ export default function AgentsScreen({ nav, onBack, onChanged, editId }) {
             <Key label={confirm ? "Yes, remove it" : "Remove"} kind="danger" busy={busy === "del"} onPress={remove} />
           )}
           {confirm && <Key label="Cancel" kind="ghost" onPress={() => setConfirm(false)} />}
+          {!confirm && !editId && <Key label="Back to profiles" kind="ghost" onPress={() => setEdit(null)} />}
         </Keys>
         <Note note={note} />
       </Shell>

@@ -26,6 +26,7 @@ let S = {
   stream: {},             // thread id -> the reply as it is being written
   evolution: 0,           // bumps when lessons or the scorecard change
   current: null,          // the thread on screen, which is never unread
+  write: 0,               // bumps when something asks for the agent's message box
 };
 const listeners = new Set();
 const set = (patch) => { S = { ...S, ...patch }; for (const fn of listeners) fn(); };
@@ -203,6 +204,9 @@ export function setCurrent(threadId) {
   if (threadId) delete unread[threadId];
   set({ current: threadId, unread });
 }
+
+// sent to the conversation to write something, from a bar or a shortcut elsewhere
+export const askToWrite = () => set({ write: S.write + 1 });
 
 export function forget() {
   set({ state: null, control: EMPTY_CONTROL, kernel: null, kernelError: "", loaded: false, online: null, seen: 0, status: {}, tool: {},

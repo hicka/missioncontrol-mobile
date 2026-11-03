@@ -6,13 +6,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView as TabSafeArea } from "react-native-screens/experimental";
+import { Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import Icon from "../components/Icon";
 import Mark, { ProfileDot } from "../components/Mark";
 import { A2ARow, ApprovalCard, DaySep, EventLine, HeartbeatRow, ImprovementCard, MessageRow, ToolGroup,
          TypingRow, rowsFor } from "../components/Messages";
-import { HandsStrip } from "../components/Tasks";
+import { HandsStrip, toneColor } from "../components/Tasks";
 import { groupWorkers, presence } from "../harness";
 import { api } from "../api";
 import * as live from "../live";
@@ -20,9 +22,10 @@ import * as store from "../store";
 import { useStore } from "../store";
 import { speak, stopSpeaking } from "../voice";
 import { T } from "../theme";
-import { Button, Empty, IconButton, Txt, haptic, notify } from "../ui";
+import { Button, Empty, HeaderButtons, IconButton, Txt, haptic, notify } from "../ui";
 
-export default function ChatScreen({ threadId, atId, nav, onBack, onVoice, active = true, focusKey }) {
+// inTab: the agent's own conversation, drawn in its tab above the tab bar, with its hands above it
+export default function ChatScreen({ threadId, atId, nav, onVoice, active = true, focusKey, inTab = false }) {
   const insets = useSafeAreaInsets();
   const state = useStore((s) => s.state);
   const status = useStore((s) => s.status);
@@ -41,10 +44,8 @@ export default function ChatScreen({ threadId, atId, nav, onBack, onVoice, activ
       name: threadId.startsWith("dm:") ? (agents[threadId.slice(3)]?.name || threadId.slice(3)) : "Team" };
   const agent = thread.agent ? agents[thread.agent] : null;
   const role = thread.agent ? roles?.[thread.agent]?.role || "" : "";
-  // the agent itself, rather than a direct line to one of its roles; only the
-  // tab has the bar beneath it and the hands above
+  // the agent itself, rather than a direct line to one of its roles
   const isLead = threadId === store.leadThread(state);
-  const inTab = !onBack;
 
   const [msgs, setMsgs] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -57,6 +58,9 @@ export default function ChatScreen({ threadId, atId, nav, onBack, onVoice, activ
   const [pending, setPending] = useState([]);
   const [menu, setMenu] = useState(false);
   const [kb, setKb] = useState(false);
+  const [top, setTop] = useState(0);   // where the page starts on screen, under the header
+  const [composerH, setComposerH] = useState(64);
+  const box = useRef(null);
   const speakReplies = useRef(false);
   const lastSpoken = useRef(null);
   const latestRef = useRef(!atId);
@@ -290,117 +294,128 @@ export default function ChatScreen({ threadId, atId, nav, onBack, onVoice, activ
 
   const p = presence(kernel, online);
   const used = kernel?.slots?.used ?? hands.filter((w) => w.status === "working").length;
-  const head = isLead ? <Mark size={36} slots={kernel?.slots?.limit || 6} used={used} attention={inboxCount} busy={writing || p.busy} />
-    : <ProfileDot agent={agent || { id: thread.agent }} size={32} />;
-  const composerBottom = kb || inTab ? 8 : Math.max(insets.bottom, 10);
+  const head = isLead ? <Mark size={30} slots={kernel?.slots?.limit || 6} used={used} attention={inboxCount} busy={writing || p.busy} />
+    : <ProfileDot agent={agent || { id: thread.agent }} size={28} />;
+  const line = isLead ? (writing ? "Writing…" : p.word) : sub === role ? "Direct line" : sub;
+  const lineColor = isLead ? (writing ? T.good : toneColor(p.tone)) : subColor;
+  const composerBottom = kb ? 8 : inTab ? 8 : Math.max(insets.bottom, 10);
+  const Bottom = inTab && Platform.OS === "ios" ? TabSafeArea : View;
+
+  const title = () => (
+    <Pressable onPress={() => thread.agent && nav.openProfile(thread.agent)} disabled={!thread.agent || isLead}
+      accessibilityHint={thread.agent && !isLead ? "Opens the profile" : undefined}
+      style={{ flexDirection: "row", alignItems: "center", gap: 9, maxWidth: 250 }}>
+      {head}
+      <View style={{ minWidth: 0, flexShrink: 1 }}>
+        <Txt size={16} weight="600" numberOfLines={1} style={{ lineHeight: 20 }}>{thread.name}</Txt>
+        {!!line && <Txt size={12} color={lineColor} numberOfLines={1} style={{ lineHeight: 15 }}>{line}</Txt>}
+      </View>
+    </Pressable>
+  );
+  const right = () => (
+    <HeaderButtons>
+      {!isLead && thread.agent && st !== "idle" && (armedStop
+        ? <Button label={`Stop all ${agent?.name || thread.agent} work?`} small kind="danger-primary" onPress={stop} />
+        : <IconButton name="stop" color={T.danger} onPress={stop} label="Stop" />)}
+      {isLead && <IconButton name="search" color={T.text} onPress={() => nav.push({ kind: "search" })} label="Search everything" />}
+      {thread.agent && !isLead && <IconButton name="more" color={T.text} onPress={() => nav.openProfile(thread.agent)} label="Profile" />}
+    </HeaderButtons>
+  );
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: T.bg }}
-      keyboardVerticalOffset={inTab ? insets.top : 0}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, height: 58,
-                     borderBottomWidth: inTab && (hands.length || inboxCount) ? 0 : 1, borderColor: T.line }}>
-        {!!onBack && <IconButton name="back" size={24} color={T.text} onPress={onBack} label="Back" />}
-        <Pressable onPress={() => thread.agent && nav.openProfile(thread.agent)} disabled={!thread.agent || isLead}
-          accessibilityHint={thread.agent && !isLead ? "Opens the profile" : undefined}
-          style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0, paddingLeft: inTab ? 6 : 0 }}>
-          {head}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Txt size={16.5} weight="700" numberOfLines={1}>{thread.name}</Txt>
-            {isLead ? <Txt size={12.5} color={writing ? T.good : T.text3} numberOfLines={1}>{writing ? "Writing…" : p.word}</Txt>
-              : !!sub && <Txt size={12.5} color={subColor} numberOfLines={1}>{sub === role ? "Direct line" : sub}</Txt>}
+    <View ref={box} style={{ flex: 1, backgroundColor: T.bg }}
+      onLayout={() => box.current?.measureInWindow((_x, y) => setTop(y || 0))}>
+      <Stack.Screen options={{ title: thread.name || "", headerTitle: title, headerRight: right }} />
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}
+        keyboardVerticalOffset={top}>
+        {inTab && <HandsStrip workers={hands} needs={inboxCount} onTask={(w) => nav.openTask(w.id)} onNeeds={() => nav.tab("inbox")} />}
+
+        {loaded && !msgs.length ? (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <Empty art={isLead ? <Mark size={72} /> : <ProfileDot agent={agent || { id: thread.agent }} size={56} />}
+              title={agent ? agent.name : thread.name}
+              text={isLead ? "Ask anything, or hand over a task. It starts the work and tells you when there is something to know."
+                : "This reaches the role directly, with no Router in between. It is how you step in by name."} />
           </View>
-        </Pressable>
-        {!isLead && thread.agent && st !== "idle" && (armedStop
-          ? <Button label={`Stop all ${agent?.name || thread.agent} work?`} small kind="danger-primary" onPress={stop} />
-          : <IconButton name="stop" color={T.danger} onPress={stop} label="Stop" />)}
-        {!!isLead && <IconButton name="search" onPress={() => nav.push({ kind: "search" })} label="Search everything" />}
-        {thread.agent && !isLead && <IconButton name="more" onPress={() => nav.openProfile(thread.agent)} label="Profile" />}
-      </View>
-      {inTab && <HandsStrip workers={hands} needs={inboxCount} onTask={(w) => nav.openTask(w.id)} onNeeds={() => nav.tab("now")} />}
+        ) : (
+          <FlatList
+            inverted
+            contentInsetAdjustmentBehavior="never"
+            data={data}
+            keyExtractor={(r) => r.id}
+            renderItem={renderRow}
+            // inverted, so paddingTop is the visual bottom: room for the "Jump to latest" pill
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: atLatest ? 14 : 64, paddingBottom: 10 }}
+            maintainVisibleContentPosition={atLatest ? { minIndexForVisible: 0, autoscrollToTopThreshold: 120 } : undefined}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            onEndReached={loadOlder}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={hasMore ? (
+              <Txt size={12.5} color={T.text3} style={{ alignSelf: "center", paddingVertical: 12 }}>
+                {older ? "Loading earlier messages…" : "Earlier messages"}
+              </Txt>
+            ) : null}
+          />
+        )}
 
-      {loaded && !msgs.length ? (
-        <View style={{ flex: 1, justifyContent: "center" }}>
-          <Empty art={isLead ? <Mark size={72} /> : <ProfileDot agent={agent || { id: thread.agent }} size={56} />}
-            title={agent ? agent.name : thread.name}
-            text={isLead ? "Ask anything, or hand over a task. It starts the work and tells you when there is something to know."
-              : "This reaches the role directly, with no Router in between. It is how you step in by name."} />
-        </View>
-      ) : (
-        <FlatList
-          inverted
-          data={data}
-          keyExtractor={(r) => r.id}
-          renderItem={renderRow}
-          // inverted, so paddingTop is the visual bottom: room for the "Jump to latest" pill
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: atLatest ? 14 : 64, paddingBottom: 10 }}
-          maintainVisibleContentPosition={atLatest ? { minIndexForVisible: 0, autoscrollToTopThreshold: 120 } : undefined}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          onEndReached={loadOlder}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={hasMore ? (
-            <Txt size={12.5} color={T.text3} style={{ alignSelf: "center", paddingVertical: 12 }}>
-              {older ? "Loading earlier messages…" : "Earlier messages"}
-            </Txt>
-          ) : null}
-        />
-      )}
-
-      {!atLatest && (
-        <View style={{ position: "absolute", alignSelf: "center", bottom: 92 + (kb ? 0 : insets.bottom) }}>
-          <Button label="Jump to latest" icon="down" small onPress={toLatest}
-            style={{ backgroundColor: T.surface, borderColor: T.lineStrong, borderWidth: 1 }} />
-        </View>
-      )}
-
-      <View style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: composerBottom }}>
-        {menu && (
-          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
-            <Button label="Photo" icon="image" small onPress={pickPhoto} />
-            <Button label="File" icon="file" small onPress={pickFile} />
+        {!atLatest && (
+          <View style={{ position: "absolute", alignSelf: "center", bottom: composerH + 12 }}>
+            <Button label="Jump to latest" icon="down" small onPress={toLatest}
+              style={{ backgroundColor: T.surface, borderColor: T.lineStrong, borderWidth: 1 }} />
           </View>
         )}
-        <View style={{ backgroundColor: T.surface, borderWidth: 1, borderColor: T.lineStrong, borderRadius: 22,
-                       paddingLeft: 6, paddingRight: 6, paddingVertical: 5 }}>
-          {pending.length > 0 && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 6, paddingTop: 4, paddingBottom: 2 }}>
-              {pending.map((e) => (
-                <View key={e.key} style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 28, paddingLeft: 10,
-                  paddingRight: e.uploading ? 10 : 4, borderRadius: 8, backgroundColor: T.surface2, borderWidth: 1,
-                  borderColor: T.line, opacity: e.uploading ? 0.6 : 1, maxWidth: "100%" }}>
-                  <Icon name="clip" size={13} color={T.text2} />
-                  <Txt size={12.5} color={T.text2} numberOfLines={1} style={{ flexShrink: 1 }}>
-                    {e.uploading ? `Uploading ${e.name}` : e.name}
-                  </Txt>
-                  {!e.uploading && (
-                    <Pressable hitSlop={8} onPress={() => setPending((p) => p.filter((x) => x.key !== e.key))}
-                      accessibilityLabel={`Remove ${e.name}`}>
-                      <Icon name="x" size={14} color={T.text3} />
-                    </Pressable>
-                  )}
-                </View>
-              ))}
+
+        <Bottom edges={{ bottom: !kb }} onLayout={(e) => setComposerH(e.nativeEvent.layout.height)}
+          style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: composerBottom }}>
+          {menu && (
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              <Button label="Photo" icon="image" small onPress={pickPhoto} />
+              <Button label="File" icon="file" small onPress={pickFile} />
             </View>
           )}
-          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
-            <IconButton name={menu ? "x" : "plus"} onPress={() => setMenu(!menu)} label="Attach" active={menu} />
-            <TextInput ref={input} value={draft} onChangeText={setDraft} multiline
-              placeholder={`Message ${agent?.name || thread.name || "the agent"}`}
-              placeholderTextColor={T.text4} keyboardAppearance={T.scheme} selectionColor={T.focus}
-              style={{ flex: 1, fontSize: 16, lineHeight: 21, color: T.text, maxHeight: 130, minHeight: 38,
-                       paddingTop: 9, paddingBottom: 8, paddingHorizontal: 4 }} />
-            {!canSend && !uploading && !!onVoice ? (
-              <IconButton name="mic" color={T.text2} onPress={onVoice} label="Talk" style={{ width: 34, height: 34, margin: 2 }} />
-            ) : (
-              <Pressable onPress={send} disabled={!canSend} accessibilityLabel="Send"
-                style={{ width: 34, height: 34, borderRadius: 17, margin: 2, backgroundColor: T.accent, alignItems: "center",
-                         justifyContent: "center", opacity: canSend ? 1 : 0.25 }}>
-                <Icon name="up" size={18} color={T.accentInk} weight={2.2} />
-              </Pressable>
+          <View style={{ backgroundColor: T.surface, borderWidth: 1, borderColor: T.lineStrong, borderRadius: 22,
+                         paddingLeft: 6, paddingRight: 6, paddingVertical: 5 }}>
+            {pending.length > 0 && (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 6, paddingTop: 4, paddingBottom: 2 }}>
+                {pending.map((e) => (
+                  <View key={e.key} style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 28, paddingLeft: 10,
+                    paddingRight: e.uploading ? 10 : 4, borderRadius: 8, backgroundColor: T.surface2, borderWidth: 1,
+                    borderColor: T.line, opacity: e.uploading ? 0.6 : 1, maxWidth: "100%" }}>
+                    <Icon name="clip" size={13} color={T.text2} />
+                    <Txt size={12.5} color={T.text2} numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {e.uploading ? `Uploading ${e.name}` : e.name}
+                    </Txt>
+                    {!e.uploading && (
+                      <Pressable hitSlop={8} onPress={() => setPending((p) => p.filter((x) => x.key !== e.key))}
+                        accessibilityLabel={`Remove ${e.name}`}>
+                        <Icon name="x" size={14} color={T.text3} />
+                      </Pressable>
+                    )}
+                  </View>
+                ))}
+              </View>
             )}
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
+              <IconButton name={menu ? "x" : "plus"} onPress={() => setMenu(!menu)} label="Attach" active={menu} />
+              <TextInput ref={input} value={draft} onChangeText={setDraft} multiline
+                placeholder={`Message ${agent?.name || thread.name || "the agent"}`}
+                placeholderTextColor={T.text4} keyboardAppearance={T.scheme} selectionColor={T.focus}
+                style={{ flex: 1, fontSize: 16, lineHeight: 21, color: T.text, maxHeight: 130, minHeight: 38,
+                         paddingTop: 9, paddingBottom: 8, paddingHorizontal: 4 }} />
+              {!canSend && !uploading && !!onVoice ? (
+                <IconButton name="mic" color={T.text2} onPress={onVoice} label="Talk" style={{ width: 34, height: 34, margin: 2 }} />
+              ) : (
+                <Pressable onPress={send} disabled={!canSend} accessibilityLabel="Send"
+                  style={{ width: 34, height: 34, borderRadius: 17, margin: 2, backgroundColor: T.accent, alignItems: "center",
+                           justifyContent: "center", opacity: canSend ? 1 : 0.25 }}>
+                  <Icon name="up" size={18} color={T.accentInk} weight={2.2} />
+                </Pressable>
+              )}
+            </View>
           </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        </Bottom>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

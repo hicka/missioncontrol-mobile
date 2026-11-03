@@ -51,6 +51,33 @@ export function runningTool(w, executions) {
     ((w.mission && e.mission === w.mission) || e.detail?.session === w.id)) || null;
 }
 
+// What the person asked for, as the checks the task keeps: each done only with how it was confirmed.
+export function finishLine(w) {
+  const checks = Array.isArray(w?.meta?.finish_line) ? w.meta.finish_line : [];
+  const met = (c) => !!(c.done && c.how);
+  return { checks, met, done: checks.filter(met).length, next: checks.find((c) => !met(c)) };
+}
+
+// The finish line as a bar of its checks, and how far along it is in words.
+export function FinishBar({ w, style }) {
+  const { checks, met, done, next } = finishLine(w);
+  if (!checks.length) return null;
+  return (
+    <View style={style} accessible accessibilityLabel={`Finish line, ${done} of ${checks.length} checks done`}>
+      <View style={{ flexDirection: "row", gap: 3 }}>
+        {checks.map((c, i) => (
+          <View key={i} style={{ flex: 1, height: 4, borderRadius: 2,
+            backgroundColor: met(c) ? (c.unverified ? T.warn : T.good) : T.surface3 }} />
+        ))}
+      </View>
+      <Txt size={12.5} color={T.text3} numberOfLines={1} style={{ marginTop: 6 }}>
+        {done === checks.length ? `All ${checks.length} checks done` : `${done} of ${checks.length} done`}
+        {next ? <Txt size={12.5} color={T.text2}>{`  ·  ${next.check}`}</Txt> : null}
+      </Txt>
+    </View>
+  );
+}
+
 function lastStepAge(w) {
   return w.progress || w.updated || 0;
 }
@@ -82,6 +109,7 @@ export function TaskCard({ w, mission, agents, tool, onPress }) {
         ) : !!w.summary && (
           <Txt size={13.5} color={T.text2} numberOfLines={2} style={{ marginTop: 9 }}>{clip(withoutMarker(w.summary), 180)}</Txt>
         )}
+        <FinishBar w={w} style={{ marginTop: 11 }} />
         {quiet && (
           <Txt size={12.5} color={T.warn} style={{ marginTop: 8 }}>
             No step for {span(now - lastStepAge(w))}

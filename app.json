@@ -2,27 +2,31 @@
   "expo": {
     "name": "Mission Control",
     "slug": "missioncontrol-mobile",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0a0b0d",
-    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.hicka.missioncontrol",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "Mission Control connects to the Mission Control running on your Mac over your local network."
       }
     },
     "android": {
       "package": "com.hicka.missioncontrol",
-      "usesCleartextTraffic": true
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0a0b0d"
+      }
     },
     "plugins": [
+      "expo-router",
       "expo-secure-store",
       "expo-asset",
       [
@@ -38,14 +42,26 @@
           "speechRecognitionPermission": "Mission Control turns what you say into messages, on this device."
         }
       ],
-      "./plugins/withFmtCxx17",
-      "./plugins/withSceneLifecycle"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {}
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
         "projectId": "dc1999a8-df78-4a8d-bb0c-8ead2fb883c0"
       }
     },
-    "owner": "hicker"
+    "owner": "hicker",
+    "scheme": "missioncontrol"
   }
 }

@@ -2,7 +2,7 @@
 // push token to the Mission Control server it is connected to, and the
 // server posts to Expo directly when an agent needs you.
 import Constants from "expo-constants";
-import { api } from "./api";
+import { api, isDemo } from "./api";
 
 function notifications() {
   try { return require("expo-notifications"); } catch { return null; }
@@ -11,6 +11,7 @@ function notifications() {
 export async function registerDevice() {
   const N = notifications();
   if (!N) return { ok: false, error: "notifications module unavailable" };
+  if (isDemo()) return { ok: false, error: "Sample data has no Mac to send notifications." };
   try {
     const projectId = Constants?.expoConfig?.extra?.eas?.projectId;
     if (!projectId) return { ok: false, error: "no EAS projectId configured" };

@@ -2,7 +2,7 @@
 // the team voice and hands back a cached audio url, and utterances play one
 // after another. A conversation (the voice screen) instead plays a voice
 // turn's clips back to back as they arrive, while the microphone stays open.
-import { Audio, InterruptionModeIOS } from "expo-av";
+import { Audio, InterruptionModeIOS } from "./sound";
 import { api, fileUrl } from "./api";
 import * as listen from "./listen";
 
