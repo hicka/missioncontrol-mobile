@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "3.0.0",
+    "version": "3.0.1",
     "release": {
       "automaticRelease": true
     },
@@ -27,7 +27,7 @@
         "marketingUrl": "https://hicka.github.io/missioncontrol/",
         "supportUrl": "https://hicka.github.io/missioncontrol/support.html",
         "privacyPolicyUrl": "https://hicka.github.io/missioncontrol/privacy.html",
-        "releaseNotes": "A new Home: the agent at a glance, drawn like the desktop app's floating bar. The system tab bar, a finish line on every task, and sample data to look around without a computer.",
+        "releaseNotes": "Page titles show again on the Inbox, Tasks and Settings tabs, in light and dark mode.",
         "screenshots": {
           "APP_IPHONE_67": [
             "store/screenshots/1-home.png",
