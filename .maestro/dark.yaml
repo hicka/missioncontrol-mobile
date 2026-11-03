@@ -1,0 +1,21 @@
+# The main pages in whatever appearance the phone is set to.
+appId: com.hicka.missioncontrol
+---
+- launchApp:
+    clearState: true
+- tapOn: "Look around with sample data"
+- extendedWaitUntil:
+    visible: ".*need you.*"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: home
+- tapOn:
+    text: "Chat.*"
+    index: 0
+- waitForAnimationToEnd
+- takeScreenshot: chat
+- tapOn:
+    text: "Tasks.*"
+    index: 0
+- waitForAnimationToEnd
+- takeScreenshot: tasks

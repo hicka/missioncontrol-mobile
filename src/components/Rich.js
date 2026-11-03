@@ -68,6 +68,16 @@ export function parse(text) {
       blocks.push({ t: "code", text: body.join("\n") });
       continue;
     }
+    // a table: a row of cells, a line of dashes under it, and the rows that follow
+    if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1] || "")) {
+      flushPara(); flushList();
+      const cells = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      const rows = [cells(line)];
+      i += 1;
+      while (i + 1 < lines.length && /^\s*\|.*\|\s*$/.test(lines[i + 1])) rows.push(cells(lines[++i]));
+      blocks.push({ t: "table", rows });
+      continue;
+    }
     const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
     const num = line.match(/^\s*(\d{1,3})[.)]\s+(.*)$/);
     const head = line.match(/^\s*#{1,4}\s+(.+)$/);
@@ -106,6 +116,32 @@ export default function Rich({ text, size = 16, color, selectable = true }) {
               contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10 }}>
               <Text selectable={selectable} style={{ fontFamily: FONTS.mono, fontSize: 12.5, lineHeight: 19,
                 color: T.text }}>{b.text}</Text>
+            </ScrollView>
+          );
+        }
+        if (b.t === "table") {
+          const [head, ...body] = b.rows;
+          // one width per column, from its longest cell, so the rows line up under the header
+          const widths = head.map((_, c) => Math.max(72, Math.min(240,
+            Math.max(...b.rows.map((row) => String(row[c] || "").replace(/[`*]/g, "").length)) * size * 0.56 + 22)));
+          return (
+            <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
+              <View style={{ borderWidth: 1, borderColor: T.line, borderRadius: 10, overflow: "hidden", minWidth: "100%" }}>
+                {[head, ...body].map((row, r) => (
+                  <View key={r} style={{ flexDirection: "row", backgroundColor: r === 0 ? T.surface2 : "transparent",
+                                         borderTopWidth: r ? 1 : 0, borderColor: T.line }}>
+                    {head.map((_, c) => (
+                      <View key={c} style={{ width: widths[c], paddingHorizontal: 10, paddingVertical: 7,
+                                             borderLeftWidth: c ? 1 : 0, borderColor: T.line, flexGrow: c === head.length - 1 ? 1 : 0 }}>
+                        <Text selectable={selectable} style={{ fontSize: size * 0.88, lineHeight: Math.round(size * 1.3),
+                          color: r === 0 ? T.text2 : color || T.text, fontWeight: r === 0 ? "600" : "400" }}>
+                          {inline(row[c] || "", `${i}-${r}-${c}`, size * 0.88)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
             </ScrollView>
           );
         }

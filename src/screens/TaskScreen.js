@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "../components/Icon";
 import { ProfileDot } from "../components/Mark";
 import Rich from "../components/Rich";
-import { StatePill, runningTool, toneColor } from "../components/Tasks";
+import { StatePill, finishLine, runningTool, toneColor } from "../components/Tasks";
 import { RESUMABLE, agentName, toolDetail } from "../components/Work";
 import { api } from "../api";
 import { authority, stepsOf, taskTitle, unconfirmedText, withoutMarker, workerState } from "../harness";
@@ -15,13 +15,14 @@ import * as live from "../live";
 import * as store from "../store";
 import { useStore } from "../store";
 import { T, ago, fmtTime, span } from "../theme";
-import { Button, Card, Empty, Header, IconButton, Item, List, Pill, Pre, Section, Txt, haptic, notify } from "../ui";
+import { Button, Card, Empty, Header, IconButton, Item, List, Pill, Pre, Section, Txt, haptic, notify, useWindowTop } from "../ui";
 
 const REPORT_TONE = { ready: "good", progress: "", waiting: "info", blocked: "signal", failed: "danger", dropped: "", handback: "info" };
 const STEPS_SHOWN = 30;
 
 export default function TaskScreen({ workerId, nav, onBack }) {
   const insets = useSafeAreaInsets();
+  const page = useWindowTop();
   const state = useStore((s) => s.state);
   const control = useStore((s) => s.control);
   const agents = useMemo(() => store.agentsById(state), [state]);
@@ -141,10 +142,14 @@ export default function TaskScreen({ workerId, nav, onBack }) {
   }
 
   const summary = withoutMarker(w.summary);
+  const line = finishLine(w);
+  const checks = line.checks;
   const shown = allSteps ? steps : steps.slice(0, STEPS_SHOWN);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: T.bg }}>
+    <View ref={page.ref} onLayout={page.onLayout} style={{ flex: 1, backgroundColor: T.bg }}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}
+      keyboardVerticalOffset={page.top}>
       <Header title="Task" sub={agentName(w.profile, agents)} onBack={onBack} right={open ? (
         <View style={{ flexDirection: "row", gap: 4, marginRight: 4 }}>
           <Button label={armed === "restart" ? "Restart?" : "Restart"} small kind="ghost" busy={busy === "restart"} onPress={() => act("restart")} />
@@ -153,6 +158,7 @@ export default function TaskScreen({ workerId, nav, onBack }) {
         </View>
       ) : null} />
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        contentInsetAdjustmentBehavior="never"
         refreshControl={<RefreshControl refreshing={refreshing} tintColor={T.text3}
           onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 28 }}>
@@ -194,6 +200,24 @@ export default function TaskScreen({ workerId, nav, onBack }) {
             <Txt size={13} weight="600" color={T.signal}>It is waiting for your answer</Txt>
             <Txt size={15} selectable style={{ marginTop: 4 }}>{w.question}</Txt>
           </Card>
+        )}
+
+        {checks.length > 0 && (
+          <Section title="Finish line" count={`${line.done} of ${checks.length}`}>
+            <List>
+              {checks.map((c, i) => {
+                const met = line.met(c);
+                return (
+                  <Item key={i} title={c.check} lines={0}
+                    left={<Icon name={met ? "check" : "circle"} size={18} color={met ? (c.unverified ? T.warn : T.good) : T.text4} weight={met ? 2.2 : 1.7} />}
+                    sub={met ? (c.unverified ? `${c.how}. Its tools did not show this.` : c.how) : c.done ? "Said done, without how it was confirmed." : undefined} />
+                );
+              })}
+            </List>
+            <Txt size={12.5} color={T.text3} style={{ marginTop: 8 }}>
+              What you asked for, as checks. It can only report ready once every one is done and shown.
+            </Txt>
+          </Section>
         )}
 
         {!!summary && (
@@ -273,6 +297,7 @@ export default function TaskScreen({ workerId, nav, onBack }) {
         </View>
       )}
     </KeyboardAvoidingView>
+    </View>
   );
 }
 

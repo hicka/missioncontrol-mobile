@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { View } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { api, configure } from "../../api";
+import { api, configure, isDemo } from "../../api";
+import { DEMO_URL } from "../../demo";
 import { registerDevice } from "../../push";
 import { T } from "../../theme";
 import { Dim, Field, Key, Keys, Note, Rule, Shell } from "../../ui";
 
 export default function ConnectionScreen({ state, saved, onBack, onConnected }) {
-  const [url, setUrl] = useState(saved?.url || (__DEV__ ? "http://127.0.0.1:8899" : ""));
-  const [token, setToken] = useState(saved?.token || "");
+  const sample = saved?.url === DEMO_URL;
+  const [url, setUrl] = useState(sample ? "" : saved?.url || "");
+  const [token, setToken] = useState(sample ? "" : saved?.token || "");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);
   const [busy2, setBusy2] = useState("");
@@ -32,14 +34,14 @@ export default function ConnectionScreen({ state, saved, onBack, onConnected }) 
     setBusy2("");
   }
 
-  async function connect() {
+  async function connect(to = url, key = token) {
     setBusy(true); setNote(null);
-    configure(url, token);
+    configure(to, key);
     try {
       const s = await api.state();
-      await SecureStore.setItemAsync("mc_url", url.trim());
-      await SecureStore.setItemAsync("mc_token", token.trim());
-      onConnected(s, { url: url.trim(), token: token.trim() });
+      await SecureStore.setItemAsync("mc_url", to.trim());
+      await SecureStore.setItemAsync("mc_token", key.trim());
+      onConnected(s, { url: to.trim(), token: key.trim() });
     } catch (e) {
       // a failed attempt must not leave the client pointed at the bad server
       configure(saved?.url || "", saved?.token || "");
@@ -51,9 +53,9 @@ export default function ConnectionScreen({ state, saved, onBack, onConnected }) 
   return (
     <Shell title="This phone" onBack={onBack}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: state ? T.good : T.text4 }} />
+        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: state && !sample ? T.good : T.text4 }} />
         <Dim size={14} numberOfLines={1} style={{ flex: 1 }}>
-          {state ? `Connected to ${saved?.url || url}` : "Not connected"}
+          {sample ? "Showing sample data" : state ? `Connected to ${saved?.url || url}` : "Not connected"}
         </Dim>
       </View>
       <Rule label="Mission Control" />
@@ -65,13 +67,14 @@ export default function ConnectionScreen({ state, saved, onBack, onConnected }) 
       <Field label="Access token" value={token} onChangeText={setToken}
         placeholder="Paste the token from Mobile access" secureTextEntry />
       <Keys>
-        <Key label={state ? "Reconnect" : "Connect"} busy={busy} disabled={!url} onPress={connect} />
+        <Key label={state && !sample ? "Reconnect" : "Connect"} busy={busy} disabled={!url.trim()} onPress={() => connect()} />
+        {!sample && <Key label="Look around with sample data" kind="ghost" onPress={() => connect(DEMO_URL, "")} />}
       </Keys>
       <Note note={note} />
       <Dim size={13.5} style={{ marginTop: 14 }}>
         Use a Tailscale address so it works away from home. The Mac itself never needs the token; this phone always does.
       </Dim>
-      {!!state && (
+      {!!state && !isDemo() && (
         <>
           <Rule label="Notifications" />
           <Dim size={14}>

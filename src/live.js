@@ -4,7 +4,7 @@
 // so the socket closes when the app goes to the background and reopens
 // when it comes back.
 import { AppState } from "react-native";
-import { authHeaders, baseUrl } from "./api";
+import { authHeaders, baseUrl, isDemo } from "./api";
 
 let ws = null;
 let alive = false;
@@ -19,7 +19,7 @@ function emit(ev) {
 }
 
 function ensure() {
-  if (ws || !baseUrl() || !foreground) return;
+  if (ws || !baseUrl() || isDemo() || !foreground) return;
   try {
     // the token travels as a header, never in the url
     ws = new WebSocket(baseUrl().replace(/^http/, "ws") + "/ws", null, { headers: authHeaders() });

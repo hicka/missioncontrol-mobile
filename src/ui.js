@@ -3,10 +3,12 @@
 // for the thing you came to do. The older names (Mono, Dim, Gutter, Key, Rule,
 // Shell…) stay, so every settings screen picks up the look as it is.
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
+import { ActivityIndicator, Animated, Modal, Platform, Pressable, ScrollView,
          Share, Switch, Text, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { Stack } from "expo-router";
 import Icon from "./components/Icon";
+import { RouteCtx, useRoute } from "./route";
 import { FONTS, RADIUS, T } from "./theme";
 
 export const haptic = {
@@ -37,7 +39,23 @@ export function Mono(props) { return <Txt {...props} />; }
 export function Dim({ style, ...props }) { return <Txt color={T.text3} {...props} style={style} />; }
 export function Code({ style, ...props }) { return <Txt mono size={12.5} color={T.text2} {...props} style={style} />; }
 
+// On a routed screen the words go to the system header, large on a tab's first
+// page, and only the line under it and anything on its right stay on the page.
 export function Title({ children, sub, style, right }) {
+  const routed = useRoute();
+  if (routed) {
+    return (
+      <>
+        <Stack.Screen options={{ title: typeof children === "string" ? children : "" }} />
+        {!!(sub || right) && (
+          <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 2, marginBottom: 16 }, style]}>
+            <View style={{ flex: 1, minWidth: 0 }}>{!!sub && <Txt size={14} color={T.text3}>{sub}</Txt>}</View>
+            {right}
+          </View>
+        )}
+      </>
+    );
+  }
   return (
     <View style={[{ marginTop: 6, marginBottom: 18 }, style]}>
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
@@ -398,7 +416,41 @@ export function Value({ label, value, style }) {
 }
 
 /* ---------- screens ---------- */
+// Where a page starts on screen, under whatever header is above it, so a
+// keyboard-avoiding view knows how much of the keyboard really covers it.
+export function useWindowTop() {
+  const ref = useRef(null);
+  const [top, setTop] = useState(0);
+  const onLayout = () => ref.current?.measureInWindow((_x, y) => setTop(y || 0));
+  return { ref, onLayout, top };
+}
+
+// The two-line title a native header shows when there is a line under it.
+export function HeaderTitle({ title, sub, subColor }) {
+  return (
+    <View style={{ alignItems: Platform.OS === "ios" ? "center" : "flex-start", maxWidth: 260 }}>
+      <Txt size={16} weight="600" numberOfLines={1} style={{ lineHeight: 20 }}>{title}</Txt>
+      {!!sub && <Txt size={12} color={subColor || T.text3} numberOfLines={1} style={{ lineHeight: 15 }}>{sub}</Txt>}
+    </View>
+  );
+}
+
+// Things on the right of a native header, in a row.
+export function HeaderButtons({ children }) {
+  return <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>{children}</View>;
+}
+
 export function Header({ title, sub, onBack, right, left, center }) {
+  const routed = useRoute();
+  if (routed) {
+    const options = {
+      headerRight: right ? () => right : undefined,
+      headerTitle: center ? () => center : sub ? () => <HeaderTitle title={title} sub={sub} /> : undefined,
+    };
+    if (title !== undefined) options.title = title;
+    if (left) options.headerLeft = () => left;
+    return <Stack.Screen options={options} />;
+  }
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, height: 54,
                    borderBottomWidth: 1, borderColor: T.line, backgroundColor: T.bg }}>
@@ -436,22 +488,26 @@ export function Gutter({ children, style }) {
 }
 
 export function Screen({ children, scroll = true, refreshControl, contentStyle, innerRef, ...rest }) {
+  // On a routed page the stack paints the page colour; a scroll view painting it too covered the large title.
+  const routed = useRoute();
   if (!scroll) return <View style={{ flex: 1, backgroundColor: T.bg }}>{children}</View>;
   return (
-    <ScrollView ref={innerRef} style={{ flex: 1, backgroundColor: T.bg }} keyboardShouldPersistTaps="handled"
-      refreshControl={refreshControl} keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets {...rest}
+    <ScrollView ref={innerRef} style={{ flex: 1, backgroundColor: routed ? "transparent" : T.bg }} keyboardShouldPersistTaps="handled"
+      refreshControl={refreshControl} keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
+      contentInsetAdjustmentBehavior="automatic" {...rest}
       contentContainerStyle={[{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 48 }, contentStyle]}>
       {children}
     </ScrollView>
   );
 }
 
+// A settings page: its header, and a page that keeps the field being typed in clear of the keyboard.
 export function Shell({ crumbs, title, onBack, right, children }) {
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+    <>
       <Header title={title || cap(crumbs[crumbs.length - 1])} onBack={onBack} right={right} />
       <Screen>{children}</Screen>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -461,6 +517,7 @@ export function Sheet({ visible, onClose, title, children, right, scroll = true 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}
       presentationStyle={Platform.OS === "ios" ? "pageSheet" : "fullScreen"}>
+      <RouteCtx.Provider value={null}>
       <View style={{ flex: 1, backgroundColor: T.bg }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 56,
                        borderBottomWidth: 1, borderColor: T.line, gap: 10 }}>
@@ -470,6 +527,7 @@ export function Sheet({ visible, onClose, title, children, right, scroll = true 
         </View>
         {scroll ? <Screen>{children}</Screen> : children}
       </View>
+      </RouteCtx.Provider>
       <ToastHost bottom={28} />
     </Modal>
   );

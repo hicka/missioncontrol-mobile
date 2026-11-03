@@ -1,12 +1,18 @@
-// Small client for any Mission Control server: base URL + bearer token.
+// Small client for any Mission Control server: base URL + bearer token. The
+// address "demo" is no server at all: it answers from the sample data.
+import * as demo from "./demo";
+
 let base = "";
 let token = "";
 
 export function configure(url, tok) {
   base = (url || "").trim().replace(/\/+$/, "");
-  if (base && !/^https?:\/\//.test(base)) base = "http://" + base;
+  if (base && base !== demo.DEMO_URL && !/^https?:\/\//.test(base)) base = "http://" + base;
   token = (tok || "").trim();
+  demo.forget();
 }
+
+export const isDemo = () => base === demo.DEMO_URL;
 
 export function baseUrl() {
   return base;
@@ -42,6 +48,7 @@ async function send(path, init, ms) {
 }
 
 async function request(method, path, body, ms) {
+  if (isDemo()) return demo.answer(method, path, body);
   const res = await send(path, {
     method,
     headers: headers(),
@@ -118,6 +125,7 @@ export const api = {
   playbooks: () => request("GET", "/api/playbooks"),
 
   upload: async ({ uri, name, mime }) => {
+    if (isDemo()) throw new Error(demo.SAMPLE);
     const fd = new FormData();
     fd.append("file", { uri, name, type: mime || "application/octet-stream" });
     const res = await send("/api/upload", { method: "POST", headers: authHeaders(), body: fd }, 120000);

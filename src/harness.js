@@ -118,6 +118,76 @@ export function handsLine(groups, slots) {
   return parts.length ? `${parts.join(". ")}.` : "Nothing running.";
 }
 
+/* ---------- the bar ---------- */
+
+// One line for what is happening now, and the orb's mood, as the Mac's floating bar
+// says it. What needs the owner comes before what is merely going on, and "Ask
+// anything" never shows over open work.
+export function barStatus({ online, lead, stream, inbox, status, tool, workers, name }) {
+  if (online === false) return { mood: "offline", title: "Out of reach", detail: "Your Mac is not answering." };
+  if (online === null || online === undefined) return { mood: "offline", title: "Connecting…", detail: "" };
+  if (stream) return { mood: "streaming", title: "", detail: stream };
+  if (inbox?.length) {
+    return { mood: "attention", title: inbox.length === 1 ? "1 thing needs you" : `${inbox.length} things need you`,
+             detail: waitingKinds(inbox), needs: true };
+  }
+  const st = lead ? status?.[lead.id] || "idle" : "idle";
+  if (st !== "idle") {
+    const t = tool?.[lead.id];
+    if (t) return { mood: "working", title: t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), detail: `${name} is working` };
+    return { mood: "thinking", title: "Thinking…", detail: "" };
+  }
+  const working = (workers || []).filter((w) => w.status === "working" && !w.direct);
+  // a task waiting on a build, a watch or a reply is open work too
+  const waiting = (workers || []).filter((w) => ["waiting", "blocked"].includes(w.status) && !w.direct);
+  if (working.length) {
+    const also = waiting.length ? ` · ${waiting.length} waiting` : "";
+    return { mood: "working", title: working.length === 1 ? clip(taskTitle(working[0]), 60) : `${working.length} tasks running`,
+             detail: (working.length === 1 ? "Working" : clip(taskTitle(working[0]), 60)) + also };
+  }
+  if (waiting.length) {
+    return { mood: "waiting", title: waiting.length === 1 ? clip(taskTitle(waiting[0]), 60) : `${waiting.length} tasks waiting`,
+             detail: waiting.length === 1 ? "Waiting" : clip(taskTitle(waiting[0]), 60) };
+  }
+  return { mood: "idle", title: "Ask anything", detail: `${name} is listening.` };
+}
+
+const KIND_WORDS = { question: ["a question", "questions"], command: ["a held command", "held commands"],
+  tool: ["a held tool call", "held tool calls"], job: ["a job to start", "jobs to start"],
+  proposal: ["a proposed change", "proposed changes"], signin: ["a sign-in", "sign-ins"], lesson: ["a lesson", "lessons"] };
+
+// "A held command and a question": what kinds of thing are waiting, in words.
+export function waitingKinds(inbox) {
+  const counts = {};
+  for (const i of inbox || []) counts[i.kind] = (counts[i.kind] || 0) + 1;
+  const parts = Object.entries(counts).map(([k, n]) => {
+    const w = KIND_WORDS[k] || [`a ${k}`, `${k}s`];
+    return n === 1 ? w[0] : `${n} ${w[1]}`;
+  });
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] || "";
+  return text ? text[0].toUpperCase() + text.slice(1) : "";
+}
+
+// The end of a reply still being written, in a couple of lines, with no markdown showing through.
+export function plainTail(text, n = 160) {
+  const line = oneLine(String(text || "").split("\n").filter((l) => !l.trim().startsWith("```"))
+    .map((l) => l.replace(/^\s*[-*] /, "")).join(" · ")).replace(/\*\*|`|^#+ /g, "");
+  return line.length > n ? "…" + line.slice(-n) : line;
+}
+
+// A reply's opening lines, kept as lines, for reading at a glance. Code stays in the chat.
+export function peekSummary(text, n = 420) {
+  const lines = [];
+  let fenced = false;
+  for (const raw of String(text || "").split("\n")) {
+    const t = raw.trim();
+    if (t.startsWith("```")) { fenced = !fenced; continue; }
+    if (fenced || !t || /^\|?\s*-{3,}/.test(t)) continue;
+    lines.push((t.startsWith("- ") || t.startsWith("* ") ? "• " + t.slice(2) : t).replace(/\*\*|`/g, "").replace(/^#+ /, ""));
+  }
+  return lines.join("\n").slice(0, n);
+}
+
 /* ---------- activity ---------- */
 
 export const EVENT_GROUPS = {
