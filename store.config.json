@@ -7,26 +7,27 @@
     },
     "info": {
       "en-US": {
-        "title": "Mission Control: Mac Agent",
-        "subtitle": "Your AI agent, in your pocket",
-        "description": "Mission Control is a free, open-source agent that runs on your own Mac. This app is its companion: one agent, in your pocket.\n\nSee what it is doing. The home screen shows the agent the way the Mac's floating bar does: a living orb whose light says whether it is listening, thinking, working or waiting on you, one light in orbit for each task it has open, and one line for what is happening right now.\n\nDecide what it asks. A command it wants to run, a question from a task, a job asking to start: each waits in your Inbox, shown in full, and runs only when you say so.\n\nFollow every task. Each one has a finish line, the checks that make up what you asked for, and is only reported done when every check is done and shown. Open a task to read every step it took, and step in.\n\nTalk to it. Type or speak, from anywhere, and read the reply as it is written.\n\nRequires Mission Control running on your Mac, reachable from your phone on the same network or through Tailscale. There is no account, and nothing goes through our servers: the phone talks to your Mac directly. Tap \"Look around with sample data\" to see the app without a Mac.",
+        "title": "Mission Control: AI Agent",
+        "subtitle": "Steer your agent from anywhere",
+        "description": "Mission Control is a free, open-source agent that runs on your own computer, Mac or Windows. This app is its companion: one agent, in your pocket.\n\nSee what it is doing. The home screen shows the agent the way the desktop app's floating bar does: a living orb whose light says whether it is listening, thinking, working or waiting on you, one light in orbit for each task it has open, and one line for what is happening right now.\n\nDecide what it asks. A command it wants to run, a question from a task, a job asking to start: each waits in your Inbox, shown in full, and runs only when you say so.\n\nFollow every task. Each one has a finish line, the checks that make up what you asked for, and is only reported done when every check is done and shown. Open a task to read every step it took, and step in.\n\nTalk to it. Type or speak, from anywhere, and read the reply as it is written.\n\nRequires Mission Control running on your Mac or PC, reachable from your phone on the same network or through Tailscale. There is no account, and nothing goes through our servers: the phone talks to your computer directly. Tap \"Look around with sample data\" to see the app without a computer.",
         "keywords": [
           "agent",
           "AI",
           "assistant",
           "Mac",
+          "Windows",
+          "PC",
           "automation",
           "tasks",
           "approvals",
           "remote",
           "companion",
-          "developer",
           "open source"
         ],
         "marketingUrl": "https://hicka.github.io/missioncontrol/",
         "supportUrl": "https://hicka.github.io/missioncontrol/support.html",
         "privacyPolicyUrl": "https://hicka.github.io/missioncontrol/privacy.html",
-        "releaseNotes": "A new Home: the agent at a glance, drawn like the Mac's floating bar. The system tab bar, a finish line on every task, and sample data to look around without a Mac.",
+        "releaseNotes": "A new Home: the agent at a glance, drawn like the desktop app's floating bar. The system tab bar, a finish line on every task, and sample data to look around without a computer.",
         "screenshots": {
           "APP_IPHONE_67": [
             "store/screenshots/1-home.png",

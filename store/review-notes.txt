@@ -1,5 +1,5 @@
-Mission Control Mobile is the companion to Mission Control, a free open-source agent that runs on the user's own Mac (https://github.com/hicka/missioncontrol). The phone connects to that Mac directly, by the address and access token shown in the Mac app. There is no account and no server of ours in between.
+Mission Control Mobile is the companion to Mission Control, a free open-source agent that runs on the user's own computer, Mac or Windows (https://github.com/hicka/missioncontrol). The phone connects to that computer directly, by the address and access token shown in the desktop app. There is no account and no server of ours in between.
 
-To review without a Mac, tap "Look around with sample data" on the first screen. Every screen then shows a realistic sample: the agent's home, its conversation, an Inbox with a held command and a question, tasks with their finish lines, and settings. Actions that would change something on a Mac say that nothing ran.
+To review without a computer, tap "Look around with sample data" on the first screen. Every screen then shows a realistic sample: the agent's home, its conversation, an Inbox with a held command and a question, tasks with their finish lines, and settings. Actions that would change something on the computer say that nothing ran.
 
-NSAllowsArbitraryLoads: the app talks to a server on the user's own Mac at a local network or Tailscale address, which cannot carry a public TLS certificate.
+NSAllowsArbitraryLoads: the app talks to a server on the user's own computer at a local network or Tailscale address, which cannot carry a public TLS certificate.
