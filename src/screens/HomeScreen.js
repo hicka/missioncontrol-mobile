@@ -6,8 +6,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from "react-native";
 import { useIsFocused } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SafeAreaView as TabSafeArea } from "react-native-screens/experimental";
 import Icon from "../components/Icon";
+import { KIND } from "../components/Decisions";
 import { ProfileDot } from "../components/Mark";
 import Orb from "../components/Orb";
 import { ReachBanner, useGate } from "../components/Reach";
@@ -124,7 +124,6 @@ function Home() {
 
   const orbH = Math.round(Math.min(330, width * 0.78));
   const satellites = open.slice(0, 8).map((w) => ({ id: w.id, color: colorOf(agents[w.profile]), resting: w.status !== "working" }));
-  const Bottom = Platform.OS === "ios" ? TabSafeArea : View;
 
   return (
     <View ref={page.ref} onLayout={page.onLayout} style={{ flex: 1, backgroundColor: T.bg }}>
@@ -150,7 +149,7 @@ function Home() {
                 <>
                   <Txt size={20} weight="600" numberOfLines={2} style={{ textAlign: "center", letterSpacing: -0.3 }}>{bar.title}</Txt>
                   {!!bar.detail && (
-                    <Txt size={14.5} color={bar.needs ? T.signal : T.text3} numberOfLines={2} style={{ textAlign: "center", marginTop: 3 }}>
+                    <Txt size={14.5} color={T.text3} numberOfLines={2} style={{ textAlign: "center", marginTop: 3 }}>
                       {bar.detail}
                     </Txt>
                   )}
@@ -164,26 +163,33 @@ function Home() {
             {!!away && <Txt size={13.5} color={T.text3} style={{ textAlign: "center" }}>{away}</Txt>}
 
             {inbox.length > 0 && (
-              <Pressable onPress={() => nav.tab("inbox")} accessibilityRole="button"
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-                <Card pad={14} style={{ borderColor: T.signal }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: T.signal }} />
-                    <Txt size={13.5} weight="600" color={T.signal} style={{ flex: 1 }}>
-                      {inbox.length === 1 ? "Needs you" : `${inbox.length} things need you`}
-                    </Txt>
-                    <Icon name="chev" size={15} color={T.text3} />
-                  </View>
-                  <Txt size={15} weight="500" numberOfLines={2} mono={["command", "tool"].includes(inbox[0].kind)} style={{ marginTop: 6 }}>
-                    {String(inbox[0].title).split("\n")[0]}
-                  </Txt>
-                  {inbox.length > 1 && (
-                    <Txt size={13} color={T.text3} numberOfLines={1} style={{ marginTop: 4 }}>
-                      and {inbox.slice(1, 3).map((i) => clip(String(i.title).split("\n")[0], 40)).join(", ")}{inbox.length > 3 ? "…" : ""}
-                    </Txt>
-                  )}
-                </Card>
-              </Pressable>
+              <Card style={{ borderColor: T.signal }}>
+                {inbox.slice(0, 3).map((i, n) => {
+                  const k = KIND[i.kind] || { label: i.kind };
+                  const code = ["command", "tool"].includes(i.kind);
+                  return (
+                    <Pressable key={`${i.kind}:${i.id}`} onPress={() => nav.tab("inbox")} accessibilityRole="button"
+                      style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: n ? 1 : 0, borderColor: T.line,
+                                                 backgroundColor: pressed ? T.hover : "transparent" })}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: T.signal }} />
+                        <Txt size={12.5} weight="600" color={T.signal} numberOfLines={1} style={{ flex: 1 }}>
+                          {k.label}{i.agent && i.agent !== "*" ? ` · ${agentName(i.agent, agents)}` : ""}
+                        </Txt>
+                        <Txt size={12} color={T.text4}>{ago(i.ts)}</Txt>
+                      </View>
+                      <Txt size={code ? 13.5 : 15} mono={code} weight={code ? "400" : "500"} numberOfLines={2} style={{ marginTop: 5 }}>
+                        {String(i.title).split("\n")[0]}
+                      </Txt>
+                    </Pressable>
+                  );
+                })}
+                {inbox.length > 3 && (
+                  <Pressable onPress={() => nav.tab("inbox")} style={{ paddingVertical: 11, alignItems: "center", borderTopWidth: 1, borderColor: T.line }}>
+                    <Txt size={13.5} color={T.text3}>{inbox.length - 3} more in the Inbox</Txt>
+                  </Pressable>
+                )}
+              </Card>
             )}
 
             {open.length > 0 && (
@@ -230,7 +236,7 @@ function Home() {
           </View>
         </ScrollView>
 
-        <Bottom edges={{ bottom: !kb }} style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: kb ? 8 : insets.bottom + 6 }}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, backgroundColor: T.surface, borderWidth: 1,
                          borderColor: T.lineStrong, borderRadius: 24, paddingLeft: 16, paddingRight: 5, paddingVertical: 5 }}>
             <TextInput value={draft} onChangeText={setDraft} multiline placeholder="Ask anything, or hand over a task"
@@ -251,7 +257,7 @@ function Home() {
               </Pressable>
             )}
           </View>
-        </Bottom>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );

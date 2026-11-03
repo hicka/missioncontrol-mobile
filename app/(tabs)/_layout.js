@@ -29,11 +29,11 @@ export default function Tabs() {
 
   return (
     <NativeTabs tintColor={T.text} badgeBackgroundColor={T.signal} {...android}>
-      <Trigger name="(home)" accessibilityLabel={name}>
+      <Trigger name="(home)" accessibilityLabel={name} disableAutomaticContentInsets>
         <Trigger.Icon sf="sparkles" md="auto_awesome" />
         <Trigger.Label>{name}</Trigger.Label>
       </Trigger>
-      <Trigger name="chat" accessibilityLabel={unread ? "Chat, new reply" : "Chat"}>
+      <Trigger name="chat" accessibilityLabel={unread ? "Chat, new reply" : "Chat"} disableAutomaticContentInsets>
         <Trigger.Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} md="forum" />
         <Trigger.Label>Chat</Trigger.Label>
         <Trigger.Badge hidden={!unread} />

@@ -8,6 +8,7 @@ import Icon from "./Icon";
 import { ProfileDot } from "./Mark";
 import Rich, { Inline } from "./Rich";
 import { api, authHeaders, baseUrl, fileUrl } from "../api";
+import { Decision } from "./Decisions";
 import { RADIUS, T, fmtDay, fmtTime } from "../theme";
 import { Button, Pill, Pre, Sheet, Txt, haptic, notify } from "../ui";
 
@@ -42,6 +43,8 @@ export function rowsFor(msgs, thread) {
       prev = group[group.length - 1]; continue;
     }
     if (m.kind === "approval") { rows.push({ type: "approval", id: "a" + m.id, m }); prev = m; continue; }
+    // the notice that a command was held carries the hold itself, to decide here
+    if (typeof m.meta?.approval === "string") { rows.push({ type: "held", id: "p" + m.id, m }); prev = m; continue; }
     if (m.kind === "improvement") { rows.push({ type: "improvement", id: "i" + m.id, m }); prev = m; continue; }
     if (m.kind === "sys") {
       if (m.sender !== "setup") rows.push({ type: "event", id: "s" + m.id, m });
@@ -242,6 +245,33 @@ function Card({ children }) {
 
 // A scheduled job asking to start. It runs exactly as shown, so the whole
 // task and the shell check it runs before every fire are both on the card.
+// A held command, where the conversation mentions it: while it waits, the same card as
+// the Inbox, whole and answerable; once answered, what became of it.
+export function HeldCard({ m, inbox, agents, nav }) {
+  const id = m.meta.approval;
+  const waiting = (inbox || []).find((i) => (i.kind === "command" || i.kind === "tool") && i.id === id);
+  const [rec, setRec] = useState(null);
+  useEffect(() => {
+    if (waiting) return;
+    api.get(`/api/approvals/${encodeURIComponent(id)}`).then(setRec).catch(() => {});
+  }, [id, !!waiting]);
+  if (waiting) return <View style={{ marginVertical: 4 }}><Decision i={waiting} agents={agents} nav={nav} /></View>;
+  const status = rec?.status || "";
+  const word = { approved: "Ran", done: "Ran", denied: "Declined", expired: "Expired", pending: "Waiting" }[status] || "Answered";
+  return (
+    <Card pad={14} style={{ marginVertical: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Icon name="shield" size={15} color={T.text3} />
+        <Txt size={12.5} weight="500" color={T.text3} style={{ flex: 1 }}>
+          Command held for you{rec?.agent ? ` · ${agents[rec.agent]?.name || rec.agent}` : ""}
+        </Txt>
+        {!!rec && <Pill status={status === "denied" ? "cancelled" : status === "pending" ? "waiting" : "done"} label={word} />}
+      </View>
+      <Pre>{rec?.command || m.text}</Pre>
+    </Card>
+  );
+}
+
 export function ApprovalCard({ m, jobs, agents, onChanged }) {
   const [busy, setBusy] = useState("");
   const [armed, setArmed] = useState(false);

@@ -6,13 +6,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SafeAreaView as TabSafeArea } from "react-native-screens/experimental";
 import { Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import Icon from "../components/Icon";
 import Mark, { ProfileDot } from "../components/Mark";
-import { A2ARow, ApprovalCard, DaySep, EventLine, HeartbeatRow, ImprovementCard, MessageRow, ToolGroup,
+import { A2ARow, ApprovalCard, DaySep, EventLine, HeartbeatRow, HeldCard, ImprovementCard, MessageRow, ToolGroup,
          TypingRow, rowsFor } from "../components/Messages";
 import { HandsStrip, toneColor } from "../components/Tasks";
 import { groupWorkers, presence } from "../harness";
@@ -37,7 +36,8 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
   const roles = useStore((s) => s.control.agents);
   const kernel = useStore((s) => s.kernel);
   const workers = useStore((s) => s.control.workers);
-  const inboxCount = useStore((s) => (s.control.inbox || []).length);
+  const inbox = useStore((s) => s.control.inbox);
+  const inboxCount = (inbox || []).length;
   const agents = useMemo(() => store.agentsById(state), [state]);
   const thread = (state?.threads || []).find((t) => t.id === threadId) ||
     { id: threadId, kind: threadId.startsWith("dm:") ? "dm" : "group", agent: threadId.startsWith("dm:") ? threadId.slice(3) : null,
@@ -281,6 +281,7 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
       case "beat": return <HeartbeatRow count={r.count} tools={r.tools} hit={hit} />;
       case "tools": return <ToolGroup items={r.items} hit={hit} />;
       case "approval": return <ApprovalCard m={r.m} jobs={jobs} agents={agents} onChanged={onChanged} />;
+      case "held": return <HeldCard m={r.m} inbox={inbox} agents={agents} nav={nav} />;
       case "improvement":
         return <ImprovementCard m={r.m} improvements={improvements} agents={agents}
           onChanged={() => { loadImprovements(); onChanged(); }} />;
@@ -298,8 +299,7 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
     : <ProfileDot agent={agent || { id: thread.agent }} size={28} />;
   const line = isLead ? (writing ? "Writing…" : p.word) : sub === role ? "Direct line" : sub;
   const lineColor = isLead ? (writing ? T.good : toneColor(p.tone)) : subColor;
-  const composerBottom = kb ? 8 : inTab ? 8 : Math.max(insets.bottom, 10);
-  const Bottom = inTab && Platform.OS === "ios" ? TabSafeArea : View;
+  const composerBottom = kb ? 8 : inTab ? insets.bottom + 6 : Math.max(insets.bottom, 10);
 
   const title = () => (
     <Pressable onPress={() => thread.agent && nav.openProfile(thread.agent)} disabled={!thread.agent || isLead}
@@ -366,7 +366,7 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
           </View>
         )}
 
-        <Bottom edges={{ bottom: !kb }} onLayout={(e) => setComposerH(e.nativeEvent.layout.height)}
+        <View onLayout={(e) => setComposerH(e.nativeEvent.layout.height)}
           style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: composerBottom }}>
           {menu && (
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
@@ -414,7 +414,7 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
               )}
             </View>
           </View>
-        </Bottom>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );

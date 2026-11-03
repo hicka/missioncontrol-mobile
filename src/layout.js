@@ -2,7 +2,6 @@
 // line under it, a back button that is only the chevron, and the page colour
 // behind everything so nothing flashes white between pages.
 import React from "react";
-import { View } from "react-native";
 import { Stack } from "expo-router";
 import { RouteCtx, useApp } from "./route";
 import { T } from "./theme";
@@ -28,7 +27,8 @@ const ROUTED = {};
 export function screenLayout(scheme, skip = () => false) {
   return ({ children, route }) => (
     <RouteCtx.Provider value={ROUTED}>
-      {skip(route) ? children : <View key={scheme} style={{ flex: 1, backgroundColor: T.bg }}>{children}</View>}
+      {/* a keyed fragment adds no view, so a page's scroll view stays first under the header and its large title folds */}
+      {skip(route) ? children : <React.Fragment key={scheme}>{children}</React.Fragment>}
     </RouteCtx.Provider>
   );
 }

@@ -129,7 +129,7 @@ export function barStatus({ online, lead, stream, inbox, status, tool, workers, 
   if (stream) return { mood: "streaming", title: "", detail: stream };
   if (inbox?.length) {
     return { mood: "attention", title: inbox.length === 1 ? "1 thing needs you" : `${inbox.length} things need you`,
-             detail: clip(String(inbox[0].title).split("\n")[0], 80), needs: true };
+             detail: waitingKinds(inbox), needs: true };
   }
   const st = lead ? status?.[lead.id] || "idle" : "idle";
   if (st !== "idle") {
@@ -150,6 +150,22 @@ export function barStatus({ online, lead, stream, inbox, status, tool, workers, 
              detail: waiting.length === 1 ? "Waiting" : clip(taskTitle(waiting[0]), 60) };
   }
   return { mood: "idle", title: "Ask anything", detail: `${name} is listening.` };
+}
+
+const KIND_WORDS = { question: ["a question", "questions"], command: ["a held command", "held commands"],
+  tool: ["a held tool call", "held tool calls"], job: ["a job to start", "jobs to start"],
+  proposal: ["a proposed change", "proposed changes"], signin: ["a sign-in", "sign-ins"], lesson: ["a lesson", "lessons"] };
+
+// "A held command and a question": what kinds of thing are waiting, in words.
+export function waitingKinds(inbox) {
+  const counts = {};
+  for (const i of inbox || []) counts[i.kind] = (counts[i.kind] || 0) + 1;
+  const parts = Object.entries(counts).map(([k, n]) => {
+    const w = KIND_WORDS[k] || [`a ${k}`, `${k}s`];
+    return n === 1 ? w[0] : `${n} ${w[1]}`;
+  });
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] || "";
+  return text ? text[0].toUpperCase() + text.slice(1) : "";
 }
 
 // The end of a reply still being written, in a couple of lines, with no markdown showing through.

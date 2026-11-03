@@ -3,21 +3,26 @@
 The phone app for [Mission Control](https://github.com/hicka/missioncontrol): one
 agent in your pocket, and what it is really doing in plain sight.
 
-![Now, a task and Activity on the phone](docs/screens.png)
+![Home, the conversation and a task on the phone](docs/screens.png)
 
-- **Now** shows whether the agent is listening, what needs you (held commands in
-  full, questions, jobs asking to start, proposed changes, lessons), and what each
-  task is doing, from the server's own record rather than anything the agent said.
-- **A task** opens to its reports and every step. Step in, stop it or restart it from there.
-- **Chat** is the one conversation, typed or spoken.
-- **Activity** is everything that reached the agent and what became of it, the rules
-  it decides by, and the Watchdog.
-- **More** has recent tasks, the schedule, knowledge, what it has learned, its
-  profiles with their direct lines, and every setting.
+- **Home** is the agent at a glance, drawn like the Mac's floating bar: the orb, whose
+  light says whether it is listening, thinking, working or waiting on you, one light in
+  orbit for each open task, what needs you, each task's steps so far, and the last reply.
+  Ask from here, typed or spoken.
+- **Chat** is the one conversation. A held command appears in it whole and can be
+  answered there.
+- **Inbox** is everything waiting on you: held commands in full, questions from tasks,
+  jobs asking to start, proposed changes and lessons.
+- **Tasks** shows each task's finish line, the checks that make up what you asked for.
+  A task opens to its reports and every step. Step in, stop it or restart it from there.
+- **Settings** has its profiles with their direct lines, the schedule, knowledge, what
+  it has learned, everything that reached it, and every setting on the Mac.
 
-It needs a Mission Control server, and holds nothing of its own beyond the address
-and token. Light and dark follow the phone, or pick one under More > Appearance.
-Screenshots use sample data.
+Everything comes from the server's own record rather than anything the agent said. It
+needs a Mission Control server, and holds nothing of its own beyond the address and
+token. Light and dark follow the phone, or pick one under Settings > Appearance.
+"Look around with sample data" on the first screen shows every page without a Mac, and
+the screenshots use it.
 
 ## Connect securely
 
@@ -46,7 +51,7 @@ address instead. A name with Funnel turned on resolves to public relays.
 
 ## Build your own
 
-There is no public build, so you build and sign your own. You need Node 20 or newer
+You can build and sign your own. You need Node 20 or newer
 and an [Expo](https://expo.dev) account, plus an Apple Developer account for iOS.
 
 The identifiers in the repo belong to the maintainer's builds, so change these first:
@@ -71,25 +76,27 @@ npm install
 npx expo start
 ```
 
-Build a dev client (`npx expo run:ios`) or install a build from EAS: voice and push
-need native modules that Expo Go does not carry. The app is plain React Native with no
-navigation library: four tabs, and screens pushed over them, switched in `App.js`. Two
-small config plugins keep this React Native 0.76 app building and launching with
-current Xcode: `plugins/withFmtCxx17.js` (the bundled fmt library no longer compiles as
-C++20) and `plugins/withSceneLifecycle.js` (iOS 27 launches apps built with its SDK only
-if they adopt scenes).
+Build a dev client (`npx expo run:ios`) or install a build from EAS: voice, push and the
+orb's shader need native modules that Expo Go does not carry. The app is Expo SDK 58 with
+Expo Router: the system's own tab bar (`expo-router/native-tabs`), a native stack in each
+tab, and every other page opening over the tabs. The orb is the Mac bar's shader, ported
+to Skia, and only animates while it is on screen.
+
+`.maestro/` holds [Maestro](https://maestro.dev) flows that walk every tab on the sample
+data; `store.yaml` takes the App Store pictures.
 
 ## Layout
 
 | Path | What it holds |
 | --- | --- |
-| `App.js` | Tabs, the screen stack, theme and the stored connection |
+| `app/` | The routes: `_layout.js` (theme, stored connection, notifications), `(tabs)/` and the pages over them |
 | `src/api.js` | The Mission Control client (URL and bearer token) |
 | `src/harness.js` | What a task's state may honestly claim. Read this before changing a label |
 | `src/store.js` | One shared picture of the server, kept current by live events |
 | `src/theme.js`, `src/ui.js` | Design tokens and building blocks |
-| `src/screens/` | Now, Chat, Task, Activity, More and the rest, with `config/` for settings |
-| `src/components/` | The agent's mark, tasks, decisions and messages |
+| `src/screens/` | Home, Chat, Inbox, Tasks, Settings, a task and the rest, with `config/` for settings |
+| `src/components/` | The orb, the agent's mark, tasks, decisions and messages |
+| `src/demo/` | The sample data, captured from a real server and moved forward in time |
 
 ## Status and contributing
 

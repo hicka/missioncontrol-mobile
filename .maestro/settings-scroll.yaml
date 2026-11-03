@@ -1,0 +1,21 @@
+# The large title folds into the bar as the page scrolls.
+appId: com.hicka.missioncontrol
+---
+- launchApp:
+    clearState: true
+- tapOn: "Look around with sample data"
+- extendedWaitUntil:
+    visible: ".*need you.*"
+    timeout: 20000
+- tapOn:
+    text: "Settings.*"
+    index: 0
+- scroll
+- waitForAnimationToEnd
+- takeScreenshot: settings-scrolled
+- tapOn:
+    text: "Tasks.*"
+    index: 0
+- scroll
+- waitForAnimationToEnd
+- takeScreenshot: tasks-scrolled

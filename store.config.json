@@ -1,0 +1,64 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "copyright": "2026 Mission Control contributors",
+    "categories": [
+      "DEVELOPER_TOOLS",
+      "PRODUCTIVITY"
+    ],
+    "info": {
+      "en-US": {
+        "subtitle": "Watch and steer your Mac agent",
+        "description": "Mission Control is a free, open-source agent that runs on your own Mac. This app is its companion: one agent, in your pocket.\n\nSee what it is doing. The home screen shows the agent the way the Mac's floating bar does: a living orb whose light says whether it is listening, thinking, working or waiting on you, one light in orbit for each task it has open, and one line for what is happening right now.\n\nDecide what it asks. A command it wants to run, a question from a task, a job asking to start: each waits in your Inbox, shown in full, and runs only when you say so.\n\nFollow every task. Each one has a finish line, the checks that make up what you asked for, and is only reported done when every check is done and shown. Open a task to read every step it took, and step in.\n\nTalk to it. Type or speak, from anywhere, and read the reply as it is written.\n\nRequires Mission Control running on your Mac, reachable from your phone on the same network or through Tailscale. There is no account, and nothing goes through our servers: the phone talks to your Mac directly. Tap \"Look around with sample data\" to see the app without a Mac.",
+        "keywords": [
+          "agent",
+          "AI",
+          "assistant",
+          "Mac",
+          "automation",
+          "tasks",
+          "approvals",
+          "remote",
+          "companion",
+          "developer",
+          "open source"
+        ],
+        "marketingUrl": "https://hicka.github.io/missioncontrol/",
+        "supportUrl": "https://hicka.github.io/missioncontrol/support.html",
+        "privacyPolicyUrl": "https://hicka.github.io/missioncontrol/privacy.html",
+        "releaseNotes": "A new Home: the agent at a glance, drawn like the Mac's floating bar. The system tab bar, a finish line on every task, and sample data to look around without a Mac.",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "store/screenshots/1-home.png",
+            "store/screenshots/2-chat.png",
+            "store/screenshots/3-inbox.png",
+            "store/screenshots/4-tasks.png",
+            "store/screenshots/5-task.png"
+          ]
+        }
+      }
+    },
+    "advisory": {
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "gambling": false,
+      "lootBox": false,
+      "unrestrictedWebAccess": false,
+      "kidsAgeBand": null
+    },
+    "review": {
+      "demoRequired": false,
+      "notes": "Mission Control Mobile is the companion to Mission Control, a free open-source agent that runs on the user's own Mac (https://github.com/hicka/missioncontrol). The phone connects to that Mac directly, by the address and access token shown in the Mac app. There is no account and no server of ours in between.\n\nTo review without a Mac, tap \"Look around with sample data\" on the first screen. Every screen then shows a realistic sample: the agent's home, its conversation, an Inbox with a held command and a question, tasks with their finish lines, and settings. Actions that would change something on a Mac say that nothing ran.\n\nNSAllowsArbitraryLoads: the app talks to a server on the user's own Mac at a local network or Tailscale address, which cannot carry a public TLS certificate."
+    }
+  }
+}

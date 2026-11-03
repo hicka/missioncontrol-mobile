@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AccessibilityInfo, AppState, View } from "react-native";
 import { Canvas, Fill, Shader, Skia } from "@shopify/react-native-skia";
 import { useDerivedValue, useFrameCallback, useSharedValue, withTiming } from "react-native-reanimated";
+import Mark from "./Mark";
 
 const SKSL = `
 uniform float2 center;
@@ -113,7 +114,9 @@ half4 main(float2 p) {
 }
 `;
 
-const effect = Skia.RuntimeEffect.Make(SKSL);
+// a shader that does not compile on some device draws the plain mark rather than taking the app down
+let effect = null;
+try { effect = Skia.RuntimeEffect.Make(SKSL); } catch {}
 
 const BLUE = [0.25, 0.55, 1], VIOLET = [0.62, 0.36, 1], PINK = [1, 0.32, 0.62];
 // How each mood looks, exactly as on the Mac. Colour and energy glide from one to the next.
@@ -208,7 +211,15 @@ export default function Orb({ mood = "idle", tasks = [], width, height, radius =
     satCount: sats.count, sats: sats.sats, satTint: sats.tints,
   }), [cx, cy, width, height, radius, sats]);
 
-  if (!effect || !width || !height) return <View style={{ width, height }} />;
+  if (!width || !height) return <View style={{ width, height }} />;
+  if (!effect) {
+    return (
+      <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>
+        <Mark size={radius * 2.4} slots={Math.max(6, tasks.length)} used={tasks.filter((t) => !t.resting).length}
+          attention={mood === "attention" ? 1 : 0} busy={["thinking", "streaming", "working"].includes(mood)} />
+      </View>
+    );
+  }
   return (
     <Canvas style={{ width, height }} pointerEvents="none">
       <Fill>

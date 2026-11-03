@@ -1,6 +1,7 @@
 // The conversation with the agent, with what its hands are on just above it.
 import React from "react";
 import { useIsFocused } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useGate } from "../../../src/components/Reach";
 import { nav } from "../../../src/nav";
 import * as store from "../../../src/store";
@@ -15,5 +16,10 @@ export default function Chat() {
   const lead = store.leadThread(state);
   if (gate) return gate;
   if (!lead) return null;
-  return <ChatScreen threadId={lead} nav={nav} inTab active={focused} focusKey={write} onVoice={() => nav.openVoice()} />;
+  // the insets inside a tab include the tab bar, so the conversation measures its own
+  return (
+    <SafeAreaProvider>
+      <ChatScreen threadId={lead} nav={nav} inTab active={focused} focusKey={write} onVoice={() => nav.openVoice()} />
+    </SafeAreaProvider>
+  );
 }
