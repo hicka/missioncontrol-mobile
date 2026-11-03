@@ -57,7 +57,8 @@
         "expo-notifications",
         {}
       ],
-      "expo-font"
+      "expo-font",
+      "./plugins/withGradleMemory"
     ],
     "extra": {
       "eas": {
