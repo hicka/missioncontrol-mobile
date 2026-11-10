@@ -5,16 +5,18 @@ agent in your pocket, and what it is really doing in plain sight.
 
 ![Home, Chat, Inbox and Tasks on the phone, on sample data](docs/screens.png)
 
-- **Home** is the agent at a glance, drawn like the Mac's floating bar: the orb, whose
-  light says whether it is listening, thinking, working or waiting on you, one light in
-  orbit for each open task, what needs you, each task's steps so far, and the last reply.
-  Ask from here, typed or spoken.
-- **Chat** is the one conversation. A held command appears in it whole and can be
-  answered there.
+- **Home** is how things stand: the lead and what it is waiting on, what needs you, the
+  work under way with each step as it lands, and the team. Every profile is drawn as a
+  body of its own colour that moves the way the profile is: breathing at rest, circled
+  while it thinks, lit round its rim while it works, sending out rings when it needs you.
+- **Chat** is the one conversation. The work it hands out shows between the messages as
+  it is done, and a task's course can be changed from its card. A held command appears
+  in it whole and can be answered there.
 - **Inbox** is everything waiting on you: held commands in full, questions from tasks,
   jobs asking to start, proposed changes and lessons.
-- **Tasks** shows each task's finish line, the checks that make up what you asked for.
-  A task opens to its reports and every step. Step in, stop it or restart it from there.
+- **Tasks** shows the work under way and what finished lately, each with its steps and
+  how many of its checks are confirmed. A task opens to its reports and every step. Step
+  in, stop it or restart it from there.
 - **Settings** has its profiles with their direct lines, the schedule, knowledge, what
   it has learned, everything that reached it, and every setting on the Mac.
 
@@ -76,11 +78,12 @@ npm install
 npx expo start
 ```
 
-Build a dev client (`npx expo run:ios`) or install a build from EAS: voice, push and the
-orb's shader need native modules that Expo Go does not carry. The app is Expo SDK 58 with
+Build a dev client (`npx expo run:ios`) or install a build from EAS: voice and push need
+native modules that Expo Go does not carry. The app is Expo SDK 58 with
 Expo Router: the system's own tab bar (`expo-router/native-tabs`), a native stack in each
-tab, and every other page opening over the tabs. The orb is the Mac bar's shader, ported
-to Skia, and only animates while it is on screen.
+tab, and every other page opening over the tabs. A profile's presence is plain vector
+shapes moved by natively driven transforms, and holds still when the phone asks for
+reduced motion.
 
 `.maestro/` holds [Maestro](https://maestro.dev) flows that walk every tab on the sample
 data; `store.yaml` takes the App Store pictures.
@@ -91,11 +94,11 @@ data; `store.yaml` takes the App Store pictures.
 | --- | --- |
 | `app/` | The routes: `_layout.js` (theme, stored connection, notifications), `(tabs)/` and the pages over them |
 | `src/api.js` | The Mission Control client (URL and bearer token) |
-| `src/harness.js` | What a task's state may honestly claim. Read this before changing a label |
+| `src/harness.js` | What a task's state may honestly claim, and how a profile is. Read this before changing a label |
 | `src/store.js` | One shared picture of the server, kept current by live events |
 | `src/theme.js`, `src/ui.js` | Design tokens and building blocks |
 | `src/screens/` | Home, Chat, Inbox, Tasks, Settings, a task and the rest, with `config/` for settings |
-| `src/components/` | The orb, the agent's mark, tasks, decisions and messages |
+| `src/components/` | A profile's presence, the work card, tasks, decisions and messages |
 | `src/demo/` | The sample data, captured from a real server and moved forward in time |
 
 ## Status and contributing

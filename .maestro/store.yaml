@@ -5,7 +5,7 @@ appId: com.hicka.missioncontrol
     clearState: true
 - tapOn: "Look around with sample data"
 - extendedWaitUntil:
-    visible: ".*need you.*"
+    visible: "Needs you"
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: 1-home
@@ -24,6 +24,10 @@ appId: com.hicka.missioncontrol
     index: 0
 - waitForAnimationToEnd
 - takeScreenshot: 4-tasks
-- tapOn: ".*Fix the checkout rounding bug.*"
+# its card is further down the list; the card opens the task's own page
+- scrollUntilVisible:
+    element: "Open task: Fix the checkout rounding bug"
+    direction: DOWN
+- tapOn: "Open task: Fix the checkout rounding bug"
 - waitForAnimationToEnd
 - takeScreenshot: 5-task

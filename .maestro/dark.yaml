@@ -5,7 +5,7 @@ appId: com.hicka.missioncontrol
     clearState: true
 - tapOn: "Look around with sample data"
 - extendedWaitUntil:
-    visible: ".*need you.*"
+    visible: "Needs you"
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: home

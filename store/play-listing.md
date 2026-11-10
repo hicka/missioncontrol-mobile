@@ -12,9 +12,9 @@ the phone screenshots `play/*.png` (1434×2868, the 2:1 Play allows at most).
 Mission Control is a free, open-source agent that runs on your own computer,
 Mac or Windows. This app is its companion: one agent, in your pocket.
 
-See what it is doing. The home screen shows the agent the way the desktop app's floating bar does:
-a living orb whose light says whether it is listening, thinking, working or waiting on you,
-one light in orbit for each task it has open, and one line for what is happening right now.
+See what it is doing. The home screen shows how things stand: what needs you, the work under
+way with each step as it lands, and the team. Each profile is a body of its own colour that
+moves the way it is: breathing at rest, circled while it thinks, lit while it works.
 
 Decide what it asks. A command it wants to run, a question from a task, a job asking to
 start: each waits in your Inbox, shown in full, and runs only when you say so.
