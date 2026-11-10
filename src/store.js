@@ -6,6 +6,7 @@ import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import { api } from "./api";
 import * as live from "./live";
+import { doing, leadLine, mood, stepInto, workFromSessions, workTask } from "./harness";
 
 const EMPTY_CONTROL = { agents: {}, missions: [], executions: [], watches: [], skills: [], activity: [],
                         counts: {}, inbox: [], evolution: {}, jobs: [], workers: [] };
@@ -27,6 +28,9 @@ let S = {
   evolution: 0,           // bumps when lessons or the scorecard change
   current: null,          // the thread on screen, which is never unread
   write: 0,               // bumps when something asks for the agent's message box
+  work: [],               // /api/work: each task a conversation started, oldest first, with its steps
+  workKnown: null,        // false when the server is too old to describe work, and it is read from the sessions instead
+  ended: {},              // agent id -> { at, ok }: how its last task ended, shown for a moment
 };
 const listeners = new Set();
 const set = (patch) => { S = { ...S, ...patch }; for (const fn of listeners) fn(); };
@@ -74,6 +78,7 @@ export async function refreshControl() {
         if (v.tool) tool[aid] = v.tool;
       }
       set({ control, status, tool, loaded: true, online: true, error: "", seen: Date.now() / 1000 });
+      deriveWork();
       return true;
     } catch (e) {
       set({ online: false, error: String(e.message || e) });
@@ -92,6 +97,7 @@ export async function refreshKernel() {
   busyKernel = (async () => {
     try {
       set({ kernel: await api.kernel(), kernelError: "" });
+      deriveWork();
       return true;
     } catch (e) {
       set({ kernelError: String(e.message || e) });
@@ -104,7 +110,63 @@ export async function refreshKernel() {
   return busyKernel;
 }
 
-export const refresh = () => Promise.all([refreshState(), refreshControl(), refreshKernel()]).then(([a, b]) => a && b);
+/* ---------- work as it is done ---------- */
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// Tasks that did not change keep the object they had, so a card redraws only for its own task.
+function applyWork(tasks) {
+  const before = Object.fromEntries(S.work.map((t) => [t.id, t]));
+  const ended = { ...S.ended };
+  let changed = tasks.length !== S.work.length, finished = false;
+  const next = tasks.map((task, i) => {
+    const old = before[task.id];
+    if (old && same(old, task)) { if (S.work[i] !== old) changed = true; return old; }
+    changed = true;
+    if (old && old.live && !task.live && task.outcome !== "stopped") {
+      ended[task.agent] = { at: Date.now() / 1000, ok: task.outcome !== "failed" };
+      finished = true;
+    }
+    return task;
+  });
+  if (!changed) return;
+  set(finished ? { work: next, ended } : { work: next });
+  // the mark of a task just ended goes again by itself
+  if (finished) setTimeout(() => set({ ended: { ...S.ended } }), 8200);
+}
+
+let busyWork = null, againWork = false;
+export async function refreshWork() {
+  if (S.workKnown === false) { deriveWork(); return true; }
+  if (busyWork) { againWork = true; return busyWork; }
+  busyWork = (async () => {
+    try {
+      const reply = await api.work();
+      if (!Array.isArray(reply?.tasks)) throw new Error("HTTP 404");
+      if (S.workKnown !== true) set({ workKnown: true });
+      applyWork(reply.tasks.map(workTask));
+      return true;
+    } catch (e) {
+      // an older server has no such page: its sessions say less, but they say it
+      if (/HTTP 40[45]|Not Found/i.test(String(e.message || e))) { set({ workKnown: false }); deriveWork(); }
+      return false;
+    } finally {
+      busyWork = null;
+      if (againWork) { againWork = false; soon("work", refreshWork, 200); }
+    }
+  })();
+  return busyWork;
+}
+
+function deriveWork() {
+  if (S.workKnown !== false) return;
+  applyWork(workFromSessions(S.kernel?.sessions || S.control.workers, S.control.executions, agentsById(S.state)));
+}
+
+export const moodOf = (s, agent) => mood({ agent, work: s.work, status: s.status, online: s.online, ended: s.ended });
+export const doingOf = (s, agent) => doing({ agent, work: s.work, status: s.status, tool: s.tool, role: s.control.agents?.[agent]?.role });
+export const leadLineOf = (s) => leadLine({ lead: lead(s.state), work: s.work, status: s.status, online: s.online });
+
+export const refresh = () => Promise.all([refreshState(), refreshControl(), refreshKernel(), refreshWork()]).then(([a, b]) => a && b);
 
 const timers = {};
 function soon(key, fn, ms) {
@@ -117,6 +179,19 @@ const CONTROL_EVENTS = new Set(["mission_updated", "watch_updated", "memory_upda
   "agent_added", "agent_updated", "agent_removed", "cron_updated", "approvals_updated",
   "improvements_updated", "browser_auth_updated", "evolution_updated", "session_updated"]);
 const KERNEL_EVENTS = new Set(["session_updated", "mission_updated", "kernel_updated", "trigger", "watchdog", "approvals_updated", "runtime_updated"]);
+
+const WORK_EVENTS = new Set(["session_updated", "mission_updated", "approvals_updated", "watch_updated"]);
+
+// A step as it happens: drawn at once from the event, then checked against the server's own list.
+function stepArrived(record) {
+  if (S.workKnown === false) { deriveWork(); return; }
+  if (!record.mission) return;
+  const i = S.work.findIndex((t) => t.id === record.mission);
+  if (i < 0) { soon("work", refreshWork, 50); return; }
+  const next = stepInto(S.work[i], record);
+  if (next !== S.work[i]) { const work = [...S.work]; work[i] = next; set({ work }); }
+  soon("work", refreshWork, 600);
+}
 
 function setStream(thread, text) {
   const stream = { ...S.stream };
@@ -185,6 +260,7 @@ function onEvent(ev) {
       else if (tool[e.agent] === e.name) delete tool[e.agent];
     }
     set({ tool, control: { ...S.control, executions: list.slice(0, 120) } });
+    if (e.kind === "tool") stepArrived(e);
     return;
   }
   if (ev.type === "user") {
@@ -192,6 +268,7 @@ function onEvent(ev) {
     return;
   }
   if (KERNEL_EVENTS.has(ev.type)) soon("kernel", refreshKernel, 700);
+  if (WORK_EVENTS.has(ev.type) && S.workKnown !== false) soon("work", refreshWork, 200);
   if (CONTROL_EVENTS.has(ev.type)) {
     soon("control", refreshControl, 450);
     if (ev.type.startsWith("agent_")) soon("state", refreshState, 300);
@@ -210,7 +287,7 @@ export const askToWrite = () => set({ write: S.write + 1 });
 
 export function forget() {
   set({ state: null, control: EMPTY_CONTROL, kernel: null, kernelError: "", loaded: false, online: null, seen: 0, status: {}, tool: {},
-        unread: {}, stream: {}, typing: {} });
+        unread: {}, stream: {}, typing: {}, work: [], workKnown: null, ended: {} });
 }
 
 /* ---------- lifecycle ---------- */

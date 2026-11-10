@@ -2,7 +2,7 @@
 // events drive it; polling is only the safety net for when the socket is down.
 // Opened from a search result, it shows the past around that message and does
 // not let new messages graft themselves onto it until you jump back to the
-// latest. Under the header, whatever its hands are on, one tap away.
+// latest. The work it hands out shows between the messages as it is done.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,11 +10,10 @@ import { Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import Icon from "../components/Icon";
-import Mark, { ProfileDot } from "../components/Mark";
+import { AgentMark } from "../components/Presence";
+import WorkCard from "../components/WorkCard";
 import { A2ARow, ApprovalCard, DaySep, EventLine, HeartbeatRow, HeldCard, ImprovementCard, MessageRow, ToolGroup,
          TypingRow, rowsFor } from "../components/Messages";
-import { HandsStrip, toneColor } from "../components/Tasks";
-import { groupWorkers, presence } from "../harness";
 import { api } from "../api";
 import * as live from "../live";
 import * as store from "../store";
@@ -23,7 +22,7 @@ import { speak, stopSpeaking } from "../voice";
 import { T } from "../theme";
 import { Button, Empty, HeaderButtons, IconButton, Txt, haptic, notify } from "../ui";
 
-// inTab: the agent's own conversation, drawn in its tab above the tab bar, with its hands above it
+// inTab: the agent's own conversation, drawn in its tab above the tab bar
 export default function ChatScreen({ threadId, atId, nav, onVoice, active = true, focusKey, inTab = false }) {
   const insets = useSafeAreaInsets();
   const state = useStore((s) => s.state);
@@ -34,10 +33,10 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
   const stream = useStore((s) => s.stream[threadId]);
   const jobs = useStore((s) => s.control.jobs);
   const roles = useStore((s) => s.control.agents);
-  const kernel = useStore((s) => s.kernel);
-  const workers = useStore((s) => s.control.workers);
   const inbox = useStore((s) => s.control.inbox);
-  const inboxCount = (inbox || []).length;
+  const leadLine = useStore(store.leadLineOf);
+  // the tasks this conversation started: which, and when each began. A card follows its own task.
+  const workKey = useStore((s) => s.work.filter((t) => t.thread === threadId).map((t) => `${t.id}:${t.started}`).join("|"));
   const agents = useMemo(() => store.agentsById(state), [state]);
   const thread = (state?.threads || []).find((t) => t.id === threadId) ||
     { id: threadId, kind: threadId.startsWith("dm:") ? "dm" : "group", agent: threadId.startsWith("dm:") ? threadId.slice(3) : null,
@@ -264,15 +263,12 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
   })?.[0]?.split("|")[0];
   const writing = !!typingAgent || !!stream;
 
-  const rows = useMemo(() => rowsFor(msgs, thread), [msgs, thread.kind]);
+  const rows = useMemo(() => rowsFor(msgs, thread, atLatest ? store.get().work.filter((t) => t.thread === threadId) : null),
+    [msgs, thread.kind, workKey, atLatest]);
   const data = useMemo(() => [
     ...(writing && atLatest ? [{ type: "typing", id: "typing" }] : []),
     ...[...rows].reverse(),
   ], [rows, writing, atLatest]);
-  const hands = useMemo(() => {
-    const g = groupWorkers(kernel?.sessions || workers);
-    return [...g.stuck, ...g.running, ...g.waiting];
-  }, [kernel?.sessions, workers]);
 
   const onChanged = () => store.refreshControl();
   function renderRow({ item: r }) {
@@ -288,17 +284,15 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
       case "event": return <EventLine m={r.m} />;
       case "a2a": return <A2ARow m={r.m} thread={thread} agents={agents} hit={hit === r.m.id} />;
       case "typing": return <TypingRow text={stream} />;
+      case "work": return <WorkCard id={r.task} style={{ marginTop: 12 }} />;
       default: return <MessageRow m={r.m} first={r.first} agents={agents} hit={hit === r.m.id} voice={thread.agent}
         onTask={nav.openMission} />;
     }
   }
 
-  const p = presence(kernel, online);
-  const used = kernel?.slots?.used ?? hands.filter((w) => w.status === "working").length;
-  const head = isLead ? <Mark size={30} slots={kernel?.slots?.limit || 6} used={used} attention={inboxCount} busy={writing || p.busy} />
-    : <ProfileDot agent={agent || { id: thread.agent }} size={28} />;
-  const line = isLead ? (writing ? "Writing…" : p.word) : sub === role ? "Direct line" : sub;
-  const lineColor = isLead ? (writing ? T.good : toneColor(p.tone)) : subColor;
+  const head = <AgentMark agent={agent} id={thread.agent} size={30} mood={writing && st === "idle" ? "thinking" : undefined} />;
+  const line = isLead ? (writing ? "Writing…" : leadLine) : sub === role ? "Direct line" : sub;
+  const lineColor = isLead ? (writing ? T.good : online === false ? T.danger : T.text3) : subColor;
   const composerBottom = kb ? 8 : inTab ? insets.bottom + 6 : Math.max(insets.bottom, 10);
 
   const title = () => (
@@ -328,11 +322,9 @@ export default function ChatScreen({ threadId, atId, nav, onVoice, active = true
       <Stack.Screen options={{ title: thread.name || "", headerTitle: title, headerRight: right }} />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}
         keyboardVerticalOffset={top}>
-        {inTab && <HandsStrip workers={hands} needs={inboxCount} onTask={(w) => nav.openTask(w.id)} onNeeds={() => nav.tab("inbox")} />}
-
         {loaded && !msgs.length ? (
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <Empty art={isLead ? <Mark size={72} /> : <ProfileDot agent={agent || { id: thread.agent }} size={56} />}
+            <Empty art={<AgentMark agent={agent} id={thread.agent} size={72} />}
               title={agent ? agent.name : thread.name}
               text={isLead ? "Ask anything, or hand over a task. It starts the work and tells you when there is something to know."
                 : "This reaches the role directly, with no Router in between. It is how you step in by name."} />

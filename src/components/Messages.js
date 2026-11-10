@@ -5,10 +5,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, Linking, Pressable, View } from "react-native";
 import Icon from "./Icon";
-import { ProfileDot } from "./Mark";
+import { AgentMark } from "./Presence";
 import Rich, { Inline } from "./Rich";
 import { api, authHeaders, baseUrl, fileUrl } from "../api";
 import { Decision } from "./Decisions";
+import { workBetween } from "../harness";
 import { RADIUS, T, fmtDay, fmtTime } from "../theme";
 import { Button, Pill, Pre, Sheet, Txt, haptic, notify } from "../ui";
 
@@ -18,12 +19,18 @@ const silent = (m) => (!m.kind || m.kind === "chat" || m.kind === "a2a") && m.se
   /^\W*no[_ ]?reply\W*$/i.test(m.text || "") && !(m.meta?.attachments || []).length;
 
 // Rows for a thread, oldest first: day breaks, folded tool runs, heartbeats,
-// cards, and where each run of messages from one sender begins.
-export function rowsFor(msgs, thread) {
+// cards, and where each run of messages from one sender begins. The tasks the
+// conversation started on this page sit where they began, each before whatever
+// was said after it.
+export function rowsFor(msgs, thread, work) {
   const rows = [];
   let prev = null;
+  const tasks = msgs.length ? workBetween(work, msgs[0].ts) : [];
+  let next = 0;
+  const workRow = () => { const t = tasks[next++]; rows.push({ type: "work", id: "w" + t.id, task: t.id }); };
   for (let i = 0; i < msgs.length; i++) {
     const m = msgs[i];
+    while (next < tasks.length && tasks[next].started + 4 < m.ts) workRow();
     if (silent(m)) continue;
     if (!prev || m.ts - prev.ts > 1800) rows.push({ type: "day", id: "d" + m.id, ts: m.ts });
     if (isBeat(m)) {
@@ -58,6 +65,7 @@ export function rowsFor(msgs, thread) {
     rows.push({ type: "msg", id: "m" + m.id, m, first });
     prev = m;
   }
+  while (next < tasks.length) workRow();
   return rows;
 }
 
@@ -73,7 +81,7 @@ export function DaySep({ ts }) {
 function Head({ agent, name, ts }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
-      <ProfileDot agent={agent || { id: name, name, color: "#8e8e93" }} size={20} />
+      <AgentMark agent={agent} id={name} size={22} />
       <Txt size={13.5} weight="600">{agent?.name || name}</Txt>
       {!!ts && <Txt size={12} color={T.text4}>{fmtTime(ts)}</Txt>}
     </View>
@@ -124,7 +132,7 @@ export function A2ARow({ m, thread, agents, hit }) {
     <View style={{ marginTop: 18, borderRadius: 10, borderWidth: hit ? 2 : 0, borderColor: T.warn, padding: hit ? 6 : 0 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 4 }}>
         <Txt size={12.5} color={T.text3}>{m.sender === me ? "Messaged" : "From"}</Txt>
-        <ProfileDot agent={oa} size={18} />
+        <AgentMark agent={oa} size={20} />
         <Txt size={12.5} color={T.text3}>{oa.name}</Txt>
         <Txt size={12} color={T.text4}>{fmtTime(m.ts)}</Txt>
       </View>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { api } from "../../api";
-import { ProfileDot } from "../../components/Mark";
+import Presence, { AgentMark } from "../../components/Presence";
 import { useStore } from "../../store";
 import { T } from "../../theme";
 import { Area, Dim, Field, Item, Key, Keys, Label, List, Note, Rule, Shell } from "../../ui";
@@ -64,7 +64,7 @@ export default function AgentsScreen({ nav, onBack, onChanged, editId }) {
     return (
       <Shell title={edit.id ? edit.name || "Profile" : "New profile"} onBack={onBack}>
         <View style={{ alignItems: "center", paddingVertical: 14 }}>
-          <ProfileDot agent={{ id: edit.id || edit.name || "new", name: edit.name, color: edit.color }} size={64} />
+          <Presence color={edit.color} size={84} label={edit.name} />
         </View>
         <Field label="Name" value={edit.name} onChangeText={(v) => setEdit({ ...edit, name: v })}
           placeholder="Research Analyst" autoCapitalize="words" />
@@ -105,7 +105,7 @@ export default function AgentsScreen({ nav, onBack, onChanged, editId }) {
       <Rule label={`Roster · ${agents.length}`} />
       <List>
         {agents.map((a) => (
-          <Item key={a.id} onPress={() => (nav ? nav.openProfile(a.id) : open(a))} left={<ProfileDot agent={a} size={32} />} title={a.name}
+          <Item key={a.id} onPress={() => (nav ? nav.openProfile(a.id) : open(a))} left={<AgentMark agent={a} size={36} />} title={a.name}
             sub={a.blurb || "No description"} chevron
             right={unread[`dm:${a.id}`] ? <View accessibilityLabel="New message" style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: T.text }} /> : null} />
         ))}

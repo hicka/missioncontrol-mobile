@@ -295,3 +295,185 @@ export function routeForPush(thread, leadThread) {
   if (id.startsWith("dm:")) return { to: "direct", thread: id };
   return { to: "now" };
 }
+
+/* ---------- work as it is done ---------- */
+
+// One step of a task: a tool call, in the words the agent gave it. Read from the
+// server's list of steps or from a live execution record, which share most of a shape.
+export function workStep(row) {
+  const ts = Number(row?.ts) || 0;
+  const seconds = typeof row?.seconds === "number" ? row.seconds : Math.max(0, (Number(row?.updated) || ts) - ts);
+  return { id: String(row?.id ?? ""), label: String(row?.label || ""), status: String(row?.status || ""),
+           tool: String(row?.tool || row?.name || ""), ts, seconds };
+}
+
+// A task a conversation started, as the server's /api/work describes it.
+export function workTask(row) {
+  const checks = Array.isArray(row?.checks) ? row.checks : [];
+  const waiting = row?.waiting_on || {};
+  return {
+    id: String(row?.id ?? ""), thread: String(row?.thread || ""), session: String(row?.session || ""),
+    title: String(row?.title || "Task"), agent: String(row?.agent || ""), agentName: String(row?.agent_name || row?.agent || ""),
+    phase: String(row?.phase || "done"), outcome: String(row?.outcome || ""),
+    waitingKind: String(waiting.kind || ""), waitingText: String(waiting.text || ""), approval: waiting.approval || null,
+    started: Number(row?.started) || 0, updated: Number(row?.updated) || 0,
+    steps: (Array.isArray(row?.steps) ? row.steps : []).map(workStep),
+    checksTotal: checks.length, checksDone: checks.filter((c) => c && c.done && c.how).length,
+    summary: String(row?.summary || ""), live: !!row?.live,
+  };
+}
+
+// The same picture from a server that has no /api/work yet: its sessions, and the
+// tool calls it listed for each, under the tool's own name.
+const SESSION_PHASE = { queued: "queued", waiting: "waiting", stalled: "waiting", blocked: "needs_you" };
+export function workFromSessions(sessions, executions, agents) {
+  const out = [];
+  for (const w of sessions || []) {
+    if (!w.mission || w.direct || w.speculative || isRoutine(w)) continue;
+    const steps = (executions || []).filter((e) => e.kind === "tool" && e.mission === w.mission)
+      .sort((a, b) => (a.ts || 0) - (b.ts || 0))
+      .map((e) => workStep({ ...e, label: e.label || plainStep(e) }));
+    const live = ["queued", "working", "waiting", "stalled", "blocked"].includes(w.status);
+    const running = steps.length && steps[steps.length - 1].status === "running";
+    const phase = w.status === "working" ? (running ? "working" : "thinking") : SESSION_PHASE[w.status] || "done";
+    out.push(workTask({
+      id: w.mission, session: w.id, thread: w.conversation || "", title: taskTitle(w), agent: w.profile,
+      agent_name: agents?.[w.profile]?.name || w.profile, phase,
+      outcome: phase === "done" ? (w.status === "failed" ? "failed" : "finished") : "",
+      waiting_on: w.status === "blocked" ? { kind: "you", text: w.question || "It has a question for you." }
+        : w.status === "stalled" ? { kind: "provider", text: "The model provider is not answering" } : null,
+      started: w.created, updated: w.updated, steps, checks: w.meta?.finish_line, summary: w.summary, live,
+    }));
+  }
+  return out.sort((a, b) => a.started - b.started);
+}
+
+// A tool call in a line, from what it was given: its own note, else the command or question, else its name.
+function plainStep(e) {
+  let args = e?.detail?.arguments;
+  if (typeof args === "string") { try { args = JSON.parse(args); } catch { args = {}; } }
+  const said = clip(args?.note || args?.command || args?.task || args?.query || args?.url || "", 90);
+  const name = String(e?.name || "").replace(/_/g, " ");
+  return said || (name ? name[0].toUpperCase() + name.slice(1) : "A step");
+}
+
+// What a task is doing this moment, as a person would say it.
+export function phaseLine(task) {
+  const last = task.steps[task.steps.length - 1];
+  switch (task.phase) {
+    case "thinking": return "Thinking";
+    case "working": return last && last.status === "running" && last.label ? last.label : "Working";
+    case "fixing": return last ? `Fixing · ${last.label}` : "Fixing";
+    case "queued": return "Waiting for a free place";
+    case "needs_you": return "Needs you";
+    case "waiting":
+      switch (task.waitingKind) {
+        case "job": return `Running · ${task.waitingText}`;
+        case "watch": return `Watching · ${task.waitingText}`;
+        case "thread": return `Waiting on ${task.waitingText}`;
+        case "provider": return task.waitingText || "Waiting";
+        default: return "Waiting";
+      }
+    default:
+      return task.outcome === "failed" ? "Could not finish" : task.outcome === "stopped" ? "Stopped" : "Finished";
+  }
+}
+
+export const shortSpan = (seconds) => (seconds < 90 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
+export const took = (task) => shortSpan(Math.max(0, task.updated - task.started));
+
+// A step arriving over the socket, folded into its task: the step is added or
+// replaced, and the phase follows it until the server's own reading comes in.
+// Returns the same task when the record is not a step the owner follows.
+export function stepInto(task, record, now = Date.now() / 1000) {
+  if (!record || record.quiet || !record.label) return task;
+  const step = workStep(record);
+  const steps = [...task.steps];
+  const i = steps.findIndex((s) => s.id === step.id);
+  if (i >= 0) steps[i] = step; else steps.push(step);
+  let phase = task.phase;
+  if (step.status === "running") {
+    const before = steps.slice(0, -1).filter((s) => s.tool !== "report").pop();
+    phase = before && before.status === "failed" ? "fixing" : "working";
+  } else if (phase === "working" || phase === "fixing") {
+    phase = "thinking";
+  }
+  return { ...task, steps, phase, updated: now };
+}
+
+// How a profile is, which its presence shows: what its tasks are doing, then what
+// it is doing itself, then how its last task ended, for a moment.
+export const MOODS = ["idle", "thinking", "working", "fixing", "waiting", "needsYou", "happy", "sad", "offline"];
+export const MOOD_WORDS = { idle: "At rest", thinking: "Thinking", working: "Working", fixing: "Fixing something",
+  waiting: "Waiting", needsYou: "Needs you", happy: "Finished", sad: "Could not finish", offline: "Not connected" };
+const ENDED_SHOWS = 8;
+
+export function mood({ agent, work, status, online, ended, now = Date.now() / 1000 }) {
+  if (online === false) return "offline";
+  const tasks = (work || []).filter((t) => t.live && t.agent === agent);
+  const any = (...phases) => tasks.some((t) => phases.includes(t.phase));
+  if (any("needs_you")) return "needsYou";
+  if (any("fixing")) return "fixing";
+  if (any("working")) return "working";
+  if (any("thinking")) return "thinking";
+  const st = status?.[agent] || "idle";
+  if (st === "thinking") return "thinking";
+  if (st === "doing") return "working";
+  if (any("waiting", "queued")) return "waiting";
+  const last = ended?.[agent];
+  if (last && now - last.at < ENDED_SHOWS) return last.ok ? "happy" : "sad";
+  return "idle";
+}
+
+// What a profile is on right now, in words; its role when it is on nothing.
+export function doing({ agent, work, status, tool, role }) {
+  const task = (work || []).find((t) => t.live && t.agent === agent);
+  if (task) return phaseLine(task);
+  const st = status?.[agent] || "idle";
+  if (st === "thinking") return "Thinking";
+  if (st === "doing") {
+    const t = tool?.[agent];
+    return t ? t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Working";
+  }
+  return role || "";
+}
+
+// The lead's own line: thinking, or who it is waiting on.
+export function leadLine({ lead, work, status, online }) {
+  if (!lead) return "";
+  if (online === false) return "Reconnecting…";
+  const st = status?.[lead.id] || "idle";
+  if (st === "thinking") return "Thinking…";
+  if (st === "doing") return "Working…";
+  const live = (work || []).filter((t) => t.live);
+  const needs = live.find((t) => t.phase === "needs_you");
+  if (needs) return `${needs.agentName} needs you`;
+  const names = [...new Set(live.map((t) => t.agentName))].sort();
+  if (names.length) return `Waiting on ${names.slice(0, 2).join(" and ")}${names.length > 2 ? " and others" : ""}`;
+  return "Ready";
+}
+
+// "Atlas has a question": what one thing waiting on the owner is, in a line.
+export function needLine(item, who) {
+  switch (item?.kind) {
+    case "question": return `${who} has a question`;
+    case "command": case "tool": return `${who} needs your OK`;
+    case "job": return `${who} wants to schedule a job`;
+    case "proposal": return `${who} proposes a change`;
+    case "signin": return "A sign-in is needed";
+    case "lesson": return `${who} learned something`;
+    default: return `${who} is waiting on you`;
+  }
+}
+
+export function greeting(name, hour = new Date().getHours()) {
+  const part = hour < 5 ? "Working late" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const first = String(name || "").trim().split(/\s+/)[0] || "";
+  return first && first !== "You" ? `${part}, ${first}` : part;
+}
+
+// Where each task belongs among a thread's messages: the tasks that began on this
+// page of the conversation, each before the first message that came after it began.
+export function workBetween(tasks, firstTs) {
+  return (tasks || []).filter((t) => t.started >= (firstTs || 0) - 5).sort((a, b) => a.started - b.started);
+}

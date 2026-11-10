@@ -3,7 +3,7 @@
 // line, which reaches it without the Router; it is how you step in by name.
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
-import { ProfileDot } from "../components/Mark";
+import { AgentMark } from "../components/Presence";
 import Icon from "../components/Icon";
 import { codeSpans } from "../components/Rich";
 import { TaskSheet, toolDetail } from "../components/Work";
@@ -64,7 +64,7 @@ export default function ProfileScreen({ agentId, nav, onBack }) {
       <Screen refreshControl={<RefreshControl refreshing={refreshing} tintColor={T.text3}
         onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}>
         <View style={{ alignItems: "center", gap: 8, paddingTop: 10, paddingBottom: 20, borderBottomWidth: 1, borderColor: T.line }}>
-          <View style={{ padding: 8 }}><ProfileDot agent={agent} size={56} /></View>
+          <AgentMark agent={agent} size={84} />
           <Txt size={20} weight="600">{agent.name || agentId}</Txt>
           <Txt size={14} color={T.text3} style={{ textAlign: "center", marginHorizontal: 20 }}>{p?.agent?.role || "A role tasks can run as"}</Txt>
           {!!p?.agent?.model && (

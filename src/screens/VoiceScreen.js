@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../api";
-import Mark from "../components/Mark";
+import { AgentMark } from "../components/Presence";
 import * as listen from "../listen";
 import * as live from "../live";
 import { cutInAt, norm } from "../cutin";
@@ -355,8 +355,9 @@ export default function VoiceScreen({ thread, agents, onBack }) {
                      borderTopWidth: 1, borderColor: T.line, paddingHorizontal: 20 }}>
         <Pressable onPress={tap} disabled={!listen.available} accessibilityRole="button"
           accessibilityLabel={phase === "speaking" ? "Cut in" : phase === "listening" ? "Send now" : "Talk"}
-          style={{ padding: 18 }}>
-          <Mark size={112} busy={phase !== "idle"} color={error ? T.danger : phase === "idle" ? T.text : phaseColor} />
+          style={{ padding: 8 }}>
+          <AgentMark agent={agent} id={thread.agent} size={128}
+            mood={error ? "sad" : phase === "thinking" ? "thinking" : phase === "speaking" ? "working" : "idle"} />
         </Pressable>
         <Txt size={14} weight="500" color={phaseColor} style={{ marginTop: 4 }}>{PHASE[phase]}</Txt>
         {!!error && <Txt size={13} color={T.danger} style={{ marginTop: 8, textAlign: "center" }}>{error}</Txt>}

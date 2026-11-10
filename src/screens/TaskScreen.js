@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "../components/Icon";
-import { ProfileDot } from "../components/Mark";
+import { AgentMark } from "../components/Presence";
 import Rich from "../components/Rich";
 import { StatePill, finishLine, runningTool, toneColor } from "../components/Tasks";
 import { RESUMABLE, agentName, toolDetail } from "../components/Work";
@@ -270,7 +270,7 @@ export default function TaskScreen({ workerId, nav, onBack }) {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24 }}>
-          <ProfileDot agent={agents[w.profile] || { id: w.profile }} size={22} />
+          <AgentMark agent={agents[w.profile]} id={w.profile} size={26} />
           <Pressable onPress={() => nav.openProfile(w.profile)} style={{ flexShrink: 1 }}>
             <Txt size={13} color={T.text3} numberOfLines={1}>Runs as {agentName(w.profile, agents)}</Txt>
           </Pressable>

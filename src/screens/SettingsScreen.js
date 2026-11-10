@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { Linking, View } from "react-native";
 import Constants from "expo-constants";
-import Mark from "../components/Mark";
+import { LeadMark } from "../components/Presence";
 import { api, isDemo } from "../api";
 import { nav } from "../nav";
 import { useApp } from "../route";
@@ -31,8 +31,6 @@ export default function SettingsScreen() {
   const { saved, theme, setTheme } = useApp();
   const state = useStore((s) => s.state);
   const online = useStore((s) => s.online);
-  const kernel = useStore((s) => s.kernel);
-  const inbox = useStore((s) => (s.control.inbox || []).length);
   const jobs = useStore((s) => s.control.jobs || []);
   const watches = useStore((s) => s.control.watches || []);
   const evolution = useStore((s) => s.control.evolution || {});
@@ -75,7 +73,7 @@ export default function SettingsScreen() {
 
       <List>
         <Item onPress={() => nav.openConfig("connection")} chevron lines={1}
-          left={<Mark size={44} slots={kernel?.slots?.limit || 6} used={kernel?.slots?.used || 0} attention={inbox} />}
+          left={<LeadMark size={46} />}
           title={<Txt size={17} weight="600" numberOfLines={1}>{connected ? name : "Connect this phone"}</Txt>}
           sub={(
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>

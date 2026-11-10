@@ -4,7 +4,7 @@
 // more careful, never give it more permission.
 import React, { useEffect, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
-import { ProfileDot } from "../components/Mark";
+import { AgentMark } from "../components/Presence";
 import Icon from "../components/Icon";
 import { BarChart, DayTable, Sparkline } from "../components/Charts";
 import { codeSpans } from "../components/Rich";
@@ -266,7 +266,7 @@ function Lesson({ l, agents, onChanged }) {
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          {l.agent === "*" ? <Icon name="users" size={15} color={T.text2} /> : <ProfileDot agent={agents[l.agent] || { id: l.agent }} size={16} />}
+          {l.agent === "*" ? <Icon name="users" size={15} color={T.text2} /> : <AgentMark agent={agents[l.agent]} id={l.agent} size={18} />}
           <Txt size={12.5} color={T.text2}>{l.agent === "*" ? "Everywhere" : agentName(l.agent, agents)}</Txt>
         </View>
         <Pill status={status[0]} label={status[1]} />

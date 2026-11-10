@@ -4,7 +4,7 @@ import React from "react";
 import { View } from "react-native";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import Mark from "./Mark";
+import Presence, { LeadMark } from "./Presence";
 import { configure } from "../api";
 import { DEMO_URL } from "../demo";
 import { nav } from "../nav";
@@ -25,7 +25,7 @@ export function useGate() {
   if (!state) {
     return (
       <Screen>
-        <Empty art={<Mark size={72} />} title={online === false ? "Can't reach Mission Control" : "Connecting…"}
+        <Empty art={<LeadMark size={84} mood={online === false ? "offline" : "thinking"} />} title={online === false ? "Can't reach Mission Control" : "Connecting…"}
           text={online === false ? `${error || "No answer"} from ${saved.url}. Check the Mac is awake and on the same network, or on Tailscale.` : saved.url}>
           {online === false && (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
@@ -51,7 +51,7 @@ function Welcome() {
   return (
     <Screen contentStyle={{ paddingTop: 56, alignItems: "center" }}>
       <Stack.Screen options={{ title: "" }} />
-      <Mark size={104} used={0} />
+      <Presence color="#8f7bff" size={120} />
       <Txt display size={32} style={{ textAlign: "center", marginTop: 26 }}>One agent, in your pocket</Txt>
       <Txt size={15} color={T.text3} style={{ textAlign: "center", marginTop: 10, marginHorizontal: 12 }}>
         Connect this phone to the Mission Control running on your Mac. See what it is doing, decide what it asks, and step in.

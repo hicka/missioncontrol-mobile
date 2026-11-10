@@ -3,7 +3,7 @@
 // here; the rest wait in a list under it, each one a tap from being the open one.
 import React, { useEffect, useMemo, useState } from "react";
 import { RefreshControl, View } from "react-native";
-import Mark from "../components/Mark";
+import { LeadMark } from "../components/Presence";
 import { Decision, DecisionRow } from "../components/Decisions";
 import { ReachBanner, useGate } from "../components/Reach";
 import { groupWorkers } from "../harness";
@@ -60,7 +60,7 @@ export default function InboxScreen() {
 
       {!inbox.length && loaded && online !== false && (
         <Card>
-          <Empty compact art={<Mark size={56} used={working} slots={kernel?.slots?.limit || 6} />} title="Nothing needs you"
+          <Empty compact art={<LeadMark size={64} />} title="Nothing needs you"
             text={working ? `${name} has ${working === 1 ? "a task" : `${working} tasks`} going and will ask here if it needs you.`
               : `${name} is listening, and will ask here if it needs you.`}>
             <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>

@@ -97,6 +97,8 @@ export const api = {
 
   // the kernel: the Router, its Workers, and every event that reached them
   kernel: () => request("GET", "/api/kernel"),
+  // each task the conversations started, with its steps, as any client can draw it
+  work: (limit = 30) => request("GET", `/api/work?limit=${limit}`),
   session: (id) => request("GET", `/api/kernel/sessions/${enc(id)}`),
   stepIn: (id, text) => call("POST", `/api/kernel/sessions/${enc(id)}/message`, { text }),
   worker: (id, action) => call("POST", `/api/kernel/sessions/${enc(id)}/${action}`, {}),

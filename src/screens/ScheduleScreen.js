@@ -2,7 +2,7 @@
 // already in flight and stop themselves when it resolves.
 import React, { useState } from "react";
 import { RefreshControl, View } from "react-native";
-import { ProfileDot } from "../components/Mark";
+import { AgentMark } from "../components/Presence";
 import { agentName } from "../components/Work";
 import { api } from "../api";
 import * as store from "../store";
@@ -52,7 +52,7 @@ export default function ScheduleScreen({ nav, onBack }) {
             <List>
               {jobs.map((j) => (
                 <View key={j.id} style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-                  <ProfileDot agent={agents[j.agent] || { id: j.agent }} size={26} />
+                  <AgentMark agent={agents[j.agent]} id={j.agent} size={30} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
                       <Txt size={15} weight="500" style={{ flex: 1 }}>{j.name}</Txt>
@@ -95,7 +95,7 @@ export default function ScheduleScreen({ nav, onBack }) {
             <List>
               {watches.map((w) => (
                 <View key={w.id} style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-                  <ProfileDot agent={agents[w.agent] || { id: w.agent }} size={26} />
+                  <AgentMark agent={agents[w.agent]} id={w.agent} size={30} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
                       <Txt size={15} weight="500" style={{ flex: 1 }}>{w.name}</Txt>
